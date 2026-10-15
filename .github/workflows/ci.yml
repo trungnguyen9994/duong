@@ -1,0 +1,34 @@
+name: EduGame Studio
+on: [push, pull_request]
+jobs:
+  local-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run local:start
+      - run: npm run check:server
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: API and worker
+        run: |
+          npm run dev:api > /tmp/edugame-api.log 2>&1 &
+          npm run dev:worker > /tmp/edugame-worker.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail http://127.0.0.1:8787/api/health; then break; fi
+            sleep 1
+          done
+      - run: npm run test:local
+      - run: npm run local:backup-check
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: test-results/

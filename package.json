@@ -1,5 +1,5 @@
 {
-  "name": "hanh-trinh-toan-lop-3",
+  "name": "edugame-studio",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,26 +9,59 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run src/tests",
     "test:e2e": "playwright test",
-    "format": "prettier --write src e2e docs README.md package.json tsconfig.json playwright.config.ts index.html"
+    "format": "prettier --write src e2e docs README.md package.json tsconfig.json playwright.config.ts index.html",
+    "dev:api": "tsx watch server/api.ts",
+    "dev:worker": "tsx watch server/worker.ts",
+    "dev:all": "concurrently -k -n web,api,worker npm:dev npm:dev:api npm:dev:worker",
+    "local:start": "node scripts/start-local.mjs",
+    "local:env": "node scripts/setup-mariadb.mjs",
+    "check:server": "tsc -p tsconfig.server.json",
+    "test:local": "tsx scripts/test-mariadb.ts",
+    "admin:bootstrap": "tsx server/bootstrap.ts",
+    "local:cleanup": "tsx server/cleanup.ts",
+    "local:backup": "tsx server/backup.ts",
+    "local:restore-check": "tsx server/restore-check.ts",
+    "test:auth": "tsx scripts/test-mariadb.ts",
+    "local:backup-check": "tsx server/check-backup.ts",
+    "db:import-supabase": "node scripts/import-supabase.mjs"
   },
   "overrides": {
     "image-size": "^2.0.3"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.1.1",
     "pptxgenjs": "^4.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router-dom": "^7.18.4",
+    "sharp": "^0.35.5",
     "zod": "^4.6.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
+    "@supabase/supabase-js": "^2.117.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "concurrently": "^10.0.6",
     "prettier": "^3.9.10",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
     "vitest": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

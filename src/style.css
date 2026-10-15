@@ -1,5 +1,8 @@
+@import "./fonts.css";
+
 :root {
-  font-family: Arial, sans-serif;
+  --font-ui: "Roboto", "Arial", sans-serif;
+  font-family: var(--font-ui);
   color: #183454;
   background: #f3f6fb;
   line-height: 1.5;
@@ -881,7 +884,7 @@ footer {
   background-attachment: fixed;
   position: relative;
   isolation: isolate;
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: var(--font-ui);
   color: #54351d;
 }
 .play-world::before {
@@ -1072,7 +1075,7 @@ footer {
 }
 .countdown-face strong {
   font-variant-numeric: tabular-nums;
-  font-family: Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 30px;
   letter-spacing: -1px;
   color: #324b5c;
@@ -2411,7 +2414,7 @@ footer {
   min-height: 78px;
 }
 .game-logo {
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 27px;
   font-weight: 900;
   letter-spacing: -1px;
@@ -2561,7 +2564,7 @@ footer {
   right: 16px;
 }
 .home-wood-sign h1 {
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: var(--font-ui);
   font-size: 36px;
   font-weight: 900;
   line-height: 1.25;
@@ -2636,7 +2639,7 @@ footer {
     inset 0 -4px 0 #35882577,
     0 6px 0 #28672677;
   background: linear-gradient(#7ecf42, #51b833);
-  font-family: "Trebuchet MS", Arial, sans-serif;
+  font-family: var(--font-ui);
   color: white;
   font-size: 21px;
   font-weight: 900;

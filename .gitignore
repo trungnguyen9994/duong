@@ -4,6 +4,11 @@ dist/
 test-results/
 playwright-report/
 main/
+duong/
+supabase/.temp/
+supabase/.branches/
+backups/
 .env
 .env.*
 !.env.example
+data/

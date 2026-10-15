@@ -51,3 +51,8 @@ File: `E:/project/duong/public/art/explorer-girl.png`
 Prompt:
 
 Use case: illustration-story. The two attached images are style references, not edit targets: first is a homepage layout; second is the existing boy explorer mascot. Generate ONE full-body Vietnamese elementary-school GIRL explorer companion age 8-9 in the same exact polished cheerful storybook 2D cartoon art style as the boy. Big brown eyes, black medium length hair, tan safari hat with a pink ribbon, pink short sleeve shirt, teal shorts, purple small backpack, comfy brown sneakers. Smiling and waving toward viewer with one hand, other hand holding a little folded treasure map. Full body clearly visible head to toes, centered, friendly pose, clean silhouette. No words, no text, no watermark, no backdrop, no ground. Genuinely transparent background and clean alpha cutout, no colored halo.
+
+## Homepage reference redesign (2026-10-15)
+- Asset: `public/art/home-hero-v2.png`; generated with the built-in imagegen tool.
+- Prompt: children's educational website hero, lush tree and waterfall left, blue mountains and river center, cream castle with red roofs right; explorer boy and beagle lower left, explorer girl lower right; pale cyan open upper center for HTML copy; vibrant storybook illustration; no text, logos, sign boards or UI.
+- Navigation, subject boards, text, icons and buttons are rendered in HTML/CSS/SVG. Existing transparent explorer assets are reused on narrow screens.

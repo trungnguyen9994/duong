@@ -2,11 +2,12 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  testMatch: "studio.spec.ts",
   timeout: 45_000,
   fullyParallel: false,
   use: {
     baseURL: "http://127.0.0.1:4173",
-    channel: "msedge",
+    channel: process.env.CI ? undefined : "msedge",
     viewport: { width: 1366, height: 768 },
     trace: "retain-on-failure",
   },

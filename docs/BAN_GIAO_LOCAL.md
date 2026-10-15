@@ -1,3 +1,5 @@
+> Tài liệu lịch sử của bản V3. Bàn giao hiện tại: [MARIADB_LOCAL.md](MARIADB_LOCAL.md).
+
 # Bàn giao bản local
 
 Bản ứng dụng có luồng soạn một lần để chơi Web và tải PPTX tương tác. Đây là bản để giáo viên kiểm thử, chưa nghiệm thu thực tế tại lớp.

@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": { "api/index.ts": { "maxDuration": 120, "includeFiles": "public/art/**" } },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/((?!assets/|art/|fonts/).*)", "destination": "/index.html" }
+  ]
+}
