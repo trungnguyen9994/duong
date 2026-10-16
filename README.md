@@ -25,7 +25,7 @@ MariaDB tại `127.0.0.1:3306`, database `supabase_db_duong`. `local:start` dùn
 
 1. Đăng ký email và xác minh trong hộp thư local. Mặc định tài khoản trở thành Teacher hoạt động.
 2. Chọn mẫu từ `/library` hoặc tạo bản nháp ở `/dashboard`.
-3. Hoàn thành wizard: Thông tin → Chọn mẫu → Nội dung → Hình ảnh → Luật chơi → Xem trước/xuất. Bản nháp được phép thiếu nội dung; bản đã lưu tự lưu tiếp khi chỉnh sửa.
+3. Hoàn thành wizard: Bắt đầu → Câu hỏi → Tùy chỉnh → Hoàn tất. Bản nháp được phép thiếu nội dung; bản đã lưu tự lưu tiếp khi chỉnh sửa.
 4. Ảnh được tải vào vùng tạm, kiểm tra/chuẩn hóa bằng worker rồi mới sử dụng. Kho mặc định chỉ có ảnh được Admin duyệt nguồn và giấy phép.
 5. Chơi thử hoặc tạo job PowerPoint. File riêng tư, tải qua URL ngắn hạn và tải lại trong lịch sử xuất trong bảy ngày.
 6. Gửi duyệt nếu muốn chia sẻ công khai. Sửa bài hoặc thu hồi chia sẻ làm liên kết cũ mất hiệu lực.

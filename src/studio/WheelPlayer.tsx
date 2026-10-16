@@ -1,3 +1,8 @@
+import { gameThemeStyle } from "./game-theme";
+import {
+  useVietnameseNarration,
+  NarrationFeedback,
+} from "./useVietnameseNarration";
 import { PlayerRoster } from "./PlayerRoster";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -38,14 +43,14 @@ export function WheelPlayer({
   const wheelRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<Animation | null>(null);
   const busyRef = useRef(false);
-  useEffect(() => () => { animationRef.current?.cancel(); }, []);
-  useEffect(() => {
-    if (muted || !("speechSynthesis" in window)) return;
-    const utterance = new SpeechSynthesisUtterance(state.message);
-    utterance.lang = "vi-VN";
-    window.speechSynthesis.speak(utterance);
-    return () => window.speechSynthesis.cancel();
-  }, [state.message, muted]);
+  useEffect(
+    () => () => {
+      animationRef.current?.cancel();
+    },
+    [],
+  );
+  const narrationText = state.message;
+  const narration = useVietnameseNarration(narrationText, muted, paused);
   const [round, setRound] = useState(0);
   const seconds = useCountdown(
     spec.settings.timerSeconds,
@@ -67,11 +72,19 @@ export function WheelPlayer({
     setRotation(nextRotation);
     if (!reduced && wheelRef.current) {
       const animation = wheelRef.current.animate(
-        [{ transform: `rotate(${rotation}deg)` }, { transform: `rotate(${nextRotation}deg)` }],
+        [
+          { transform: `rotate(${rotation}deg)` },
+          { transform: `rotate(${nextRotation}deg)` },
+        ],
         { duration: 3200, easing: "cubic-bezier(.12,.7,.12,1)" },
       );
       animationRef.current = animation;
-      try { await animation.finished; } catch { busyRef.current = false; return; }
+      try {
+        await animation.finished;
+      } catch {
+        busyRef.current = false;
+        return;
+      }
       animationRef.current = null;
     }
     setState((s) => spinWheel(spec, s, index));
@@ -82,6 +95,7 @@ export function WheelPlayer({
     <section
       className="eg-theater eg-wheel-theater"
       style={{
+        ...gameThemeStyle(spec),
         backgroundImage: "url('/art/castle.png')",
       }}
     >
@@ -91,10 +105,14 @@ export function WheelPlayer({
       />
       <div className="eg-play-toolbar">
         <button onClick={onExit}>← Thoát</button>
-        <button onClick={() => setMuted(!muted)}>
+        <button aria-pressed={!muted} onClick={() => setMuted(!muted)}>
           {muted ? "Bật âm" : "Tắt âm"}
         </button>
-        <button disabled={spinning} aria-pressed={reduced} onClick={() => setReduced(!reduced)}>
+        <button
+          disabled={spinning}
+          aria-pressed={reduced}
+          onClick={() => setReduced(!reduced)}
+        >
           Giảm chuyển động
         </button>
         <button disabled={spinning} onClick={() => setPaused(!paused)}>
@@ -104,7 +122,19 @@ export function WheelPlayer({
           ⏱ {seconds}s
         </span>
       </div>
-      <PlayerRoster spec={spec} active={state.team} scores={state.scores} disabled={paused || spinning || state.phase !== "spin"} onSelect={(team) => setState(s => ({...s, team, message: `Đến lượt quay của ${spec.settings.teams[team]}!`}))} />
+      <PlayerRoster
+        spec={spec}
+        active={state.team}
+        scores={state.scores}
+        disabled={paused || spinning || state.phase !== "spin"}
+        onSelect={(team) =>
+          setState((s) => ({
+            ...s,
+            team,
+            message: `Đến lượt quay của ${spec.settings.teams[team]}!`,
+          }))
+        }
+      />
       <main className="eg-play-panel">
         <h1>{spec.metadata.title}</h1>
         <div className="eg-word-board" aria-label="Bảng chữ">
@@ -120,7 +150,10 @@ export function WheelPlayer({
         </div>
         <p className="eg-feedback eg-clue">Gợi ý: {spec.content.clue}</p>
         <div className="eg-wheel-row">
-          <div className={`eg-wheel-wrap${spinning ? " is-spinning" : ""}`} aria-busy={spinning}>
+          <div
+            className={`eg-wheel-wrap${spinning ? " is-spinning" : ""}`}
+            aria-busy={spinning}
+          >
             <b className="eg-pointer" aria-hidden="true" />
             <div
               className="eg-wheel"
@@ -129,17 +162,45 @@ export function WheelPlayer({
                 transform: `rotate(${rotation}deg)`,
               }}
             >
-              <svg className="eg-wheel-labels" viewBox="0 0 200 200" role="img" aria-label="Vòng quay gồm các ô 10, 20, 30, 40, 10, 20, 30 và mất lượt">
+              <svg
+                className="eg-wheel-labels"
+                viewBox="0 0 200 200"
+                role="img"
+                aria-label="Vòng quay gồm các ô 10, 20, 30, 40, 10, 20, 30 và mất lượt"
+              >
                 {spec.content.segments.map((value, i) => {
-                  const angle = (i * 45 + 22.5 - 90) * Math.PI / 180;
-                  const x = 100 + Math.cos(angle) * 66, y = 100 + Math.sin(angle) * 66;
-                  return <text key={i} x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={value === "lose_turn" ? 12 : 19}>
-                    {value === "lose_turn" ? <><tspan x={x} dy="-6">Mất</tspan><tspan x={x} dy="14">lượt</tspan></> : value}
-                  </text>;
+                  const angle = ((i * 45 + 22.5 - 90) * Math.PI) / 180;
+                  const x = 100 + Math.cos(angle) * 66,
+                    y = 100 + Math.sin(angle) * 66;
+                  return (
+                    <text
+                      key={i}
+                      x={x}
+                      y={y}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={value === "lose_turn" ? 12 : 19}
+                    >
+                      {value === "lose_turn" ? (
+                        <>
+                          <tspan x={x} dy="-6">
+                            Mất
+                          </tspan>
+                          <tspan x={x} dy="14">
+                            lượt
+                          </tspan>
+                        </>
+                      ) : (
+                        value
+                      )}
+                    </text>
+                  );
                 })}
               </svg>
             </div>
-            <span className="eg-wheel-hub" aria-hidden="true">★</span>
+            <span className="eg-wheel-hub" aria-hidden="true">
+              ★
+            </span>
           </div>
           <button
             className="eg-button"
@@ -221,6 +282,12 @@ export function WheelPlayer({
             assets.find((a) => a.id === spec.media.characterId)?.alt_text ||
             "Bạn đồng hành"
           }
+        />
+        <NarrationFeedback
+          notice={narration.notice}
+          onReplay={narration.replay}
+          disabled={muted || paused || !narration.ready}
+          visible={!!narrationText}
         />
       </aside>
     </section>

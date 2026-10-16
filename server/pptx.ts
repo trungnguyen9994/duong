@@ -1,11 +1,11 @@
+import { addPowerPointMotion } from "./pptx-motion";
 import pptxgen from "pptxgenjs";
 import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 sharp.concurrency(1);
 sharp.cache({ memory: 16, files: 0, items: 32 });
-let sceneCache: Promise<string[]> | undefined;
 function defaultScenes() {
-  return (sceneCache ??= (async () => {
+  return (async () => {
     const scenes: string[] = [];
     for (const name of ["forest", "mountain", "cave", "castle"]) {
       const data = await sharp(
@@ -17,10 +17,7 @@ function defaultScenes() {
       scenes.push(`image/jpeg;base64,${data.toString("base64")}`);
     }
     return scenes;
-  })().catch((error) => {
-    sceneCache = undefined;
-    throw error;
-  }));
+  })();
 }
 import {
   letterKey,
@@ -75,7 +72,7 @@ export function journeySlides(spec: StudioSpec): Node[] {
       const next =
         j + 1 < stage.questions.length
           ? `q-${i}-${j + 1}`
-          : i < 3
+          : i < spec.content.stages.length - 1
             ? `stage-${i + 1}`
             : "summary";
       nodes.push({
@@ -110,7 +107,7 @@ export function journeySlides(spec: StudioSpec): Node[] {
     title: "Chúc mừng cả lớp!",
     text: "Cả lớp đã hoàn thành hành trình tri thức.\nGiáo viên tổng kết điểm và trao lời khen cho cả lớp.",
     buttons: [{ text: "Chơi lại", target: "cover" }],
-    scene: 3,
+    scene: spec.content.stages.length - 1,
   });
   return nodes;
 }
@@ -298,7 +295,10 @@ export async function renderPptx(
   pptx.title = spec.metadata.title;
   pptx.author = "EduGame Studio";
   pptx.subject = spec.metadata.subjectId;
-  pptx.theme = { headFontFace: "Roboto", bodyFontFace: "Roboto" };
+  pptx.theme = {
+    headFontFace: spec.appearance?.font || "Roboto",
+    bodyFontFace: spec.appearance?.font || "Roboto",
+  };
   const scenes = await defaultScenes();
   const custom = new Map<string, string>();
   for (const id of new Set(
@@ -326,7 +326,23 @@ export async function renderPptx(
   }
   const character = spec.media.characterId
     ? assets.get(spec.media.characterId)
-    : undefined;
+    : await readFile(
+        new URL(
+          `../public/art/${spec.kind === "picture_reveal" ? "explorer-girl" : "explorer"}.png`,
+          import.meta.url,
+        ),
+      );
+  if (!character)
+    throw new Error(
+      "Không tải được nhân vật đã chọn. Hãy chọn lại ảnh trước khi xuất.",
+    );
+  const characterSize = await sharp(character).metadata();
+  const characterScale = Math.min(
+    1.35 / characterSize.width!,
+    1.8 / characterSize.height!,
+  );
+  const characterWidth = characterSize.width! * characterScale;
+  const characterHeight = characterSize.height! * characterScale;
   const characterData = character
     ? `image/png;base64,${(await sharp(character).resize(250, 300, { fit: "inside" }).png().toBuffer()).toString("base64")}`
     : undefined;
@@ -335,7 +351,13 @@ export async function renderPptx(
   for (const node of nodes) {
     const slide = pptx.addSlide();
     slide.background = { color: "E9F5FF" };
-    slide.addImage({ data: scenes[node.scene], x: 0, y: 0, w: 13.333, h: 7.5 });
+    slide.addImage({
+      data: scenes[node.scene % scenes.length],
+      x: 0,
+      y: 0,
+      w: 13.333,
+      h: 7.5,
+    });
     slide.addImage({
       data:
         custom.get(
@@ -344,40 +366,75 @@ export async function renderPptx(
             : undefined) ||
             spec.media.backgroundId ||
             "",
-        ) || scenes[node.scene],
+        ) || scenes[node.scene % scenes.length],
       x: 0,
       y: 0,
       w: 13.333,
       h: 7.5,
       transparency: 100 * (1 - spec.media.opacity),
     });
+    spec.settings.teams.slice(0, 4).forEach((name, i) => {
+      slide.addText(name + " : ____", {
+        x: 0.35,
+        y: 2.2 + i * 0.7,
+        w: 2.15,
+        h: 0.55,
+        fontSize: 16,
+        color: "183D63",
+        fill: { color: "E9F6FF" },
+        margin: 0.08,
+        fit: "shrink",
+      });
+    });
+    slide.addText(
+      spec.settings.timerSeconds
+        ? "Thời gian: " + spec.settings.timerSeconds + " s"
+        : "Không giới hạn giờ",
+      {
+        x: 0.35,
+        y: 0.65,
+        w: 2.15,
+        h: 0.55,
+        fontSize: 15,
+        color: "183D63",
+        fill: { color: "FFFFFF" },
+        align: "center",
+        fit: "shrink",
+      },
+    );
     slide.addShape(pptx.ShapeType.roundRect, {
-      x: 0.67,
-      y: 0.5,
-      w: 12,
-      h: 6.5,
-      fill: { color: "FFF4DE", transparency: 5 },
+      x: 2.8,
+      y: 1.8,
+      w: 8.7,
+      h: node.word || node.picture ? 4.3 : 2.35,
+      fill: {
+        color: spec.appearance?.question.slice(1) || "FFF4DE",
+        transparency: 0,
+      },
       line: { color: "C18D47", width: 3 },
     });
     slide.addText(node.title, {
-      x: 1,
-      y: 0.8,
-      w: 11.3,
+      fill: { color: spec.appearance?.heading.slice(1) || "A2602C" },
+      fontFace: spec.appearance?.font,
+      x: 2.8,
+      y: 0.65,
+      w: 8.7,
       h: 0.75,
       fontSize: 28,
       bold: true,
-      color: "143C70",
+      color: spec.appearance?.text.slice(1) || "FFF2C9",
       align: "center",
       breakLine: false,
     });
     if (node.text)
       slide.addText(node.text, {
-        x: 1.1,
-        y: 1.8,
-        w: 11.1,
+        fontFace: spec.appearance?.font,
+        x: 3.05,
+        y: 2.05,
+        w: 8.2,
         h: node.word?.phrase ? 1 : node.buttons.length === 4 ? 1.4 : 2.5,
         fontSize: 26,
-        color: "223044",
+        color: spec.appearance?.text.slice(1) || "223044",
         align: "center",
         valign: "middle",
         fit: "shrink",
@@ -385,7 +442,7 @@ export async function renderPptx(
     if (node.word) {
       const chars = Array.from(node.word.phrase.normalize("NFC")),
         columns = Math.min(20, chars.length),
-        cell = Math.min(0.62, 10.5 / columns);
+        cell = Math.min(0.62, 8 / columns);
       chars.forEach((c, i) =>
         slide.addText(
           node.word!.letters.includes(letterKey(c)) || !/\p{L}/u.test(c)
@@ -393,7 +450,7 @@ export async function renderPptx(
             : "",
           {
             shape: pptx.ShapeType.roundRect,
-            x: 1.3 + (i % columns) * cell,
+            x: 3.1 + (i % columns) * cell,
             y: 3 + Math.floor(i / columns) * 0.55,
             w: cell - 0.05,
             h: 0.5,
@@ -460,9 +517,9 @@ export async function renderPptx(
     }
     node.buttons.forEach((button, i) => {
       const multiple = node.buttons.length === 4;
-      const x = multiple ? 1.2 + (i % 2) * 5.6 : 4.3,
+      const x = multiple ? 2.8 + (i % 2) * 4.5 : 4.3,
         y = multiple ? 4.5 + Math.floor(i / 2) * 0.9 : 5.3,
-        w = multiple ? 5.3 : 4.7;
+        w = multiple ? 4.2 : 4.7;
       const slideNumber = ids.get(button.target);
       if (!slideNumber) throw new Error("Liên kết slide không tồn tại.");
       slide.addText(button.text, {
@@ -473,8 +530,9 @@ export async function renderPptx(
         h: 0.75,
         fontSize: 22,
         bold: true,
-        color: "4B2D10",
-        fill: { color: "FFD88A" },
+        fontFace: spec.appearance?.font,
+        color: spec.appearance?.text.slice(1) || "4B2D10",
+        fill: { color: spec.appearance?.answer.slice(1) || "FFD88A" },
         line: { color: "B57935", width: 2 },
         align: "center",
         valign: "middle",
@@ -492,12 +550,22 @@ export async function renderPptx(
       align: "center",
     });
     if (characterData)
-      slide.addImage({ data: characterData, x: 11.5, y: 5.3, w: 0.9, h: 1.25 });
+      slide.addImage({
+        data: characterData,
+        x: 11.6 + (1.35 - characterWidth) / 2,
+        y: 6 - characterHeight,
+        w: characterWidth,
+        h: characterHeight,
+      });
   }
-  const output = (await pptx.write({
+  const rawOutput = (await pptx.write({
     outputType: "nodebuffer",
     compression: true,
   })) as Buffer;
+  const output = await addPowerPointMotion(
+    rawOutput,
+    spec.settings.reducedMotion,
+  );
   if (output.length > 50 * 1024 * 1024)
     throw new Error("File PowerPoint vượt 50 MB.");
   return output;

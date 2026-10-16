@@ -31,7 +31,7 @@ const temp = resolve(destination, `.restore-files-${target}`);
 try {
   rootSql(
     `CREATE DATABASE \`${target}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; USE \`${target}\`;` +
-      (await readFile("database/migrations/001_mariadb.sql", "utf8")),
+      (await readFile("database/migrations/001_mariadb.sql", "utf8")) + "\n" + (await readFile("database/migrations/003_usernames.sql", "utf8")),
   );
   const data = JSON.parse(
     await readFile(resolve(destination, "database.json"), "utf8"),

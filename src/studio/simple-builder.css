@@ -1,0 +1,293 @@
+.simple-step-help {
+  color: #647c96;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+.simple-field-help {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #718198;
+  margin: 10px 0 14px;
+}
+.eg-builder-workbench .eg-template-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.eg-builder-workbench .eg-template-option-copy {
+  padding: 12px;
+  gap: 5px;
+}
+.eg-builder-workbench .eg-template-option-copy strong {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.eg-builder-workbench .eg-template-option-copy small {
+  font-size: 11px;
+}
+.eg-builder-workbench .eg-template-option-state {
+  font-size: 12px;
+}
+.simple-optional {
+  border: 1px solid #e1eaf5;
+  border-radius: 12px;
+  padding: 0 15px;
+  margin: 18px 0;
+  background: #fafcff;
+}
+.simple-optional > summary {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3e658b;
+  cursor: pointer;
+  padding: 15px 0;
+  min-height: 48px;
+}
+.simple-optional > summary > span {
+  font-size: 11px;
+  color: #8292a5;
+  font-weight: 400;
+  margin-left: 6px;
+}
+.simple-optional[open] {
+  padding-bottom: 16px;
+}
+.simple-default-rules {
+  font-size: 13px;
+  padding: 13px 16px;
+  border: 1px solid #dcecfb;
+  border-radius: 11px;
+  color: #487197;
+  background: #f1f8ff;
+  line-height: 1.6;
+}
+.simple-question-empty {
+  border: 1px dashed #c6d9ee;
+  background: #f6faff;
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+}
+.simple-question-empty strong {
+  color: #245584;
+  font-size: 16px;
+}
+.simple-question-empty p {
+  color: #75879b;
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+.simple-question-card {
+  border: 1px solid #d6e5f4;
+  border-radius: 14px;
+  background: white;
+  overflow: hidden;
+  margin: 14px 0;
+}
+.eg-app .simple-question-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: #f5f9fe;
+  border: 0;
+  border-radius: 0;
+  padding: 14px;
+  font-size: 14px;
+  color: #24496e;
+  min-height: 64px;
+}
+.simple-question-index {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: #e1efff;
+  color: #1179de;
+  border-radius: 50%;
+  font-weight: 800;
+}
+.simple-question-heading > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.simple-question-heading strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+.simple-question-heading small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #7c8fa6;
+  margin-top: 5px;
+}
+.simple-complete {
+  color: #159356;
+}
+.simple-incomplete {
+  color: #c98e30;
+}
+.simple-question-body {
+  padding: 4px 18px 18px;
+}
+.eg-app .simple-question-body textarea {
+  min-height: 90px;
+}
+.simple-choice-list {
+  display: grid;
+  gap: 10px;
+}
+.simple-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d8e3f0;
+  border-radius: 11px;
+  min-width: 0;
+  background: white;
+}
+.simple-choice.is-correct {
+  border-color: #46ac7b;
+  background: #f4fbf7;
+  box-shadow: 0 0 0 1px #46ac7b16;
+}
+.eg-app .simple-choice .simple-correct-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  min-height: 48px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: #4b6781;
+}
+.eg-app .simple-choice .simple-correct-control input {
+  margin: 0;
+  accent-color: #1ba169;
+  width: 18px;
+  height: 18px;
+}
+.simple-correct-control > span {
+  font-size: 14px;
+  font-weight: 700;
+}
+.eg-app
+  .simple-choice
+  > input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 10px;
+  padding: 12px 8px;
+  box-shadow: none;
+  font-size: 14px;
+}
+.simple-choice:focus-within {
+  outline: 2px solid #88bdff;
+  outline-offset: 1px;
+}
+.simple-question-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+.eg-app .simple-question-actions button {
+  font-size: 13px;
+  background: #fff;
+  padding: 8px 12px;
+  min-height: 44px;
+}
+.eg-app .simple-question-actions .simple-delete {
+  color: #b65656;
+  border-color: #efdada;
+}
+.eg-app .simple-add-question {
+  width: 100%;
+  margin-top: 8px;
+  min-height: 48px;
+}
+.eg-app .simple-next-stage {
+  width: 100%;
+  margin: 8px 0 18px;
+  font-size: 14px;
+  color: #1277d4;
+  border-color: #b6d4f7;
+}
+.eg-builder-workbench > .eg-step {
+  padding: 15px;
+}
+.eg-builder-workbench .eg-edit-fields {
+  margin: 0;
+  padding: 12px;
+  border: 0;
+}
+.eg-builder-workbench .eg-edit-fields > footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding: 16px 0 0;
+  margin-top: 24px;
+  z-index: 2;
+}
+.eg-builder-workbench .eg-edit-fields > footer button {
+  font-size: 14px;
+}
+.simple-question-heading:focus-visible,
+.simple-optional > summary:focus-visible {
+  outline: 3px solid #f4bc52;
+  outline-offset: -3px;
+}
+@media (max-width: 600px) {
+  .eg-builder-workbench .eg-template-options {
+    grid-template-columns: 1fr;
+  }
+  .eg-builder-workbench .eg-template-option {
+    display: grid;
+    grid-template-columns: 90px minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .eg-builder-workbench .eg-template-option > .eg-asset {
+    width: 90px;
+    height: 100%;
+    aspect-ratio: auto;
+    object-fit: cover;
+  }
+  .eg-builder-workbench .eg-template-option-copy {
+    padding: 12px;
+  }
+  .simple-question-body {
+    padding: 4px 12px 14px;
+  }
+  .eg-app .simple-choice .simple-correct-control {
+    padding: 9px;
+    gap: 6px;
+  }
+  .eg-builder-workbench > .eg-step {
+    padding: 10px;
+  }
+  .eg-builder-workbench .eg-edit-fields {
+    padding: 2px;
+  }
+  .eg-builder-workbench .eg-edit-fields > footer {
+    gap: 8px;
+  }
+  .eg-builder-workbench .eg-edit-fields > footer button {
+    font-size: 12px;
+    padding: 10px;
+  }
+}
+.eg-app .builder-export-actions {display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:16px 0 8px;}
+.eg-app .builder-export-actions button {margin:0;}

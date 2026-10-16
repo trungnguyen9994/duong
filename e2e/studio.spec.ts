@@ -9,6 +9,96 @@ test.afterAll(async () => {
 import { migrateLegacy } from "../src/domain/studio-migration";
 import { sampleGame } from "../src/domain/sample";
 
+test("Vietnamese narration waits for a suitable voice and stops on pause or mute", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = {
+      voices: [{ name: "English", lang: "en-US", localService: true }],
+      spoken: [] as { text: string; lang: string; rate: number }[],
+      active: false,
+      cancels: 0,
+    };
+    const events = new EventTarget();
+    const synth = {
+      getVoices: () => state.voices,
+      cancel: () => {
+        state.active = false;
+        state.cancels++;
+      },
+      speak: (u: { text: string; voice: { lang: string }; rate: number }) => {
+        state.active = true;
+        state.spoken.push({ text: u.text, lang: u.voice.lang, rate: u.rate });
+      },
+      addEventListener: events.addEventListener.bind(events),
+      removeEventListener: events.removeEventListener.bind(events),
+    };
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: synth,
+    });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", {
+      configurable: true,
+      value: class {
+        constructor(public text: string) {}
+      },
+    });
+    Object.assign(window, {
+      __narration: state,
+      __loadVietnamese: () => {
+        state.voices.push({
+          name: "Vietnamese",
+          lang: "vi-VN",
+          localService: true,
+        });
+        events.dispatchEvent(new Event("voiceschanged"));
+      },
+    });
+  });
+  await page.goto("/demo/journey");
+  await expect(
+    page.getByText(/Máy chưa có giọng đọc tiếng Việt/),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => (window as any).__narration.spoken.length),
+  ).toBe(0);
+  await page.evaluate(() => (window as any).__loadVietnamese());
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__narration.spoken.length))
+    .toBe(1);
+  const voice = await page.evaluate(
+    () => (window as any).__narration.spoken[0],
+  );
+  expect(voice.lang).toBe("vi-VN");
+  expect(voice.rate).toBe(0.85);
+  await page.getByRole("button", { name: "Tạm dừng", exact: true }).click();
+  expect(await page.evaluate(() => (window as any).__narration.active)).toBe(
+    false,
+  );
+  await page.getByRole("button", { name: "Tiếp tục", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__narration.spoken.length))
+    .toBe(2);
+  await page.getByRole("button", { name: "Tắt âm", exact: true }).click();
+  expect(await page.evaluate(() => (window as any).__narration.active)).toBe(
+    false,
+  );
+  await page.getByRole("button", { name: "Bật âm", exact: true }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__narration.spoken.length))
+    .toBe(3);
+  await page
+    .getByRole("button", { name: "Nghe lại lời thoại", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__narration.spoken.length))
+    .toBe(4);
+  await page.getByRole("link", { name: "Mẫu trò chơi", exact: true }).click();
+  expect(await page.evaluate(() => (window as any).__narration.active)).toBe(
+    false,
+  );
+});
+
 test("public pages, responsive layout and login return", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -30,6 +120,47 @@ test("public pages, responsive layout and login return", async ({ page }) => {
   ).toBe(true);
   expect(errors).toEqual([]);
 });
+test("login layout supports password visibility, mode links and mobile", async ({
+  page,
+}) => {
+  await page.goto("/login?next=%2Flibrary");
+  await expect(
+    page.getByRole("heading", { name: "Chào mừng trở lại!" }),
+  ).toBeVisible();
+  const password = page.getByLabel("Mật khẩu", { exact: true });
+  await password.fill("Example-password-123");
+  await expect(password).toHaveAttribute("type", "password");
+  await page
+    .getByRole("button", { name: "Hiện mật khẩu", exact: true })
+    .click();
+  await expect(password).toHaveAttribute("type", "text");
+  await page.getByRole("button", { name: "Ẩn mật khẩu", exact: true }).click();
+  await expect(password).toHaveAttribute("type", "password");
+  await page.getByRole("checkbox", { name: "Ghi nhớ đăng nhập" }).uncheck();
+  await page
+    .getByRole("button", { name: "Quên mật khẩu?", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Quên mật khẩu", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Quay lại đăng nhập", exact: false })
+    .click();
+  await page.getByRole("link", { name: "Đăng ký", exact: true }).click();
+  await expect(page.getByLabel("Tên hiển thị", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(
+    /next=%2Flibrary.*mode=signup|mode=signup.*next=%2Flibrary/,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByRole("button", { name: "Đăng ký", exact: true }).last(),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 test("teacher imports, saves, edits, plays journey and queues server PPTX", async ({
   page,
 }) => {
@@ -48,7 +179,9 @@ test("teacher imports, saves, edits, plays journey and queues server PPTX", asyn
   ]);
   try {
     await page.goto("/login");
-    await page.getByLabel("Email", { exact: true }).fill(email);
+    await page
+      .getByLabel("Email hoặc tên đăng nhập", { exact: true })
+      .fill(email);
     await page.getByLabel("Mật khẩu", { exact: true }).fill(password);
     await page
       .getByRole("button", { name: "Đăng nhập", exact: true })
@@ -61,6 +194,10 @@ test("teacher imports, saves, edits, plays journey and queues server PPTX", asyn
     const spec = await migrateLegacy(sampleGame(), async () =>
       crypto.randomUUID(),
     );
+    await page
+      .locator("summary")
+      .filter({ hasText: "Nhập bài có sẵn / chuyển bài cũ" })
+      .click();
     await page.getByLabel("Nhập JSON mới / bài cũ").setInputFiles({
       name: "lesson.json",
       mimeType: "application/json",
@@ -71,7 +208,11 @@ test("teacher imports, saves, edits, plays journey and queues server PPTX", asyn
       .fill("Bài nghiệm thu V4.1");
     await page.getByRole("button", { name: "Lưu nháp", exact: true }).click();
     await expect(page).toHaveURL(/builder\/[a-f0-9-]{36}$/);
-    await page.getByRole("button", { name: "4 Hình ảnh" }).click();
+    await page.getByRole("button", { name: "3 Tùy chỉnh" }).click();
+    await page
+      .locator("summary")
+      .filter({ hasText: "Hình ảnh và nhân vật" })
+      .click();
     await page
       .locator('input[type=file][accept="image/png,image/jpeg,image/webp"]')
       .setInputFiles("public/art/forest.png");
@@ -100,7 +241,7 @@ test("teacher imports, saves, edits, plays journey and queues server PPTX", asyn
     await page
       .getByRole("button", { name: "Lưu mô tả ảnh cá nhân", exact: true })
       .click();
-    await page.getByRole("button", { name: "6 Xem trước / xuất" }).click();
+    await page.getByRole("button", { name: "4 Hoàn tất" }).click();
     await page.getByRole("button", { name: "Chơi thử", exact: true }).click();
     await expect(page.getByRole("timer")).toContainText("00:45");
     await page.getByRole("button", { name: "Bắt đầu chặng" }).click();

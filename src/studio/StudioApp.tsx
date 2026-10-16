@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import "./game-list.css";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BrowserRouter,
   Link,
@@ -6,11 +7,10 @@ import {
   Navigate,
   Route,
   Routes,
-  useNavigate,
   useSearchParams,
 } from "react-router-dom";
 import { AuthProvider, RequireAuth, useAuth } from "./auth";
-import { api, configured, backend } from "./client";
+import { api, backend } from "./client";
 import {
   templateRegistry,
   templateTypes,
@@ -28,6 +28,9 @@ import "./studio.css";
 import { Home, Header } from "./HomePage";
 import "./homepage.css";
 import { DemoPlayer, SharedPlayer } from "./GamePlayer";
+import { Login } from "./AuthPage";
+import { AboutPage } from "./AboutPage";
+import { SignedInLayout } from "./SignedInLayout";
 
 export type GameRow = {
   id: string;
@@ -37,6 +40,7 @@ export type GameRow = {
   updated_at: string;
 };
 type ExportRow = {
+  gameTitle: string;
   id: string;
   status: string;
   created_at: string;
@@ -60,174 +64,6 @@ export const subjects: Record<string, string> = {
   technology: "Công nghệ",
   other: "Khác",
 };
-function Login() {
-  const [params] = useSearchParams(),
-    navigate = useNavigate();
-  const [mode, setMode] = useState(params.get("mode") || "login"),
-    [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [name, setName] = useState(""),
-    [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
-  const { session } = useAuth();
-  const requested = params.get("next") || "/dashboard";
-  const next =
-    requested.startsWith("/") &&
-    !requested.startsWith("//") &&
-    !requested.startsWith("/login")
-      ? requested
-      : "/dashboard";
-  useEffect(() => {
-    if (session && mode !== "update") navigate(next, { replace: true });
-  }, [session, mode, next, navigate]);
-  useEffect(() => {
-    const { data } = backend.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setMode("update");
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage("");
-    try {
-      if (!configured)
-        throw new Error(
-          "Backend chưa được cấu hình. Hãy kiểm tra máy chủ API.",
-        );
-      localStorage.setItem("edugame-return", next);
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      const result =
-        mode === "signup"
-          ? await backend.auth.signUp({
-              email,
-              password,
-              options: {
-                data: { display_name: name },
-                emailRedirectTo: redirectTo,
-              },
-            })
-          : mode === "reset"
-            ? await backend.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/login?mode=update`,
-              })
-            : mode === "update"
-              ? await backend.auth.updateUser({ password })
-              : await backend.auth.signInWithPassword({ email, password });
-      if (result.error) throw result.error;
-      if (mode === "signup")
-        setMessage(
-          import.meta.env.VITE_LOCAL_MAIL_URL
-            ? "Đã gửi thư xác minh. Mở hộp thư local tại http://127.0.0.1:8025 để xác minh email."
-            : "Đã gửi thư xác minh. Hãy kiểm tra hộp thư email của bạn.",
-        );
-      if (mode === "reset")
-        setMessage(
-          "Nếu email tồn tại, thư đặt lại mật khẩu sẽ được gửi tới hộp thư local.",
-        );
-      if (mode === "update") {
-        setMessage("Đã đổi mật khẩu.");
-        navigate(next);
-      }
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Không thể đăng nhập.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="eg-auth">
-      <form className="eg-card" onSubmit={submit}>
-        <h1>
-          {mode === "signup"
-            ? "Tạo tài khoản giáo viên"
-            : mode === "reset"
-              ? "Quên mật khẩu"
-              : mode === "update"
-                ? "Đặt mật khẩu mới"
-                : "Chào mừng trở lại!"}
-        </h1>
-        <p>Cùng tạo những giờ học đầy hứng thú.</p>
-        <div className="eg-tabs">
-          <button
-            type="button"
-            aria-pressed={mode === "login"}
-            onClick={() => setMode("login")}
-          >
-            Đăng nhập
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "signup"}
-            onClick={() => setMode("signup")}
-          >
-            Đăng ký
-          </button>
-        </div>
-        {mode === "signup" && (
-          <label>
-            Tên hiển thị
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={100}
-              required
-              autoComplete="name"
-            />
-          </label>
-        )}
-        {mode !== "update" && (
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </label>
-        )}
-        {mode !== "reset" && (
-          <label>
-            Mật khẩu
-            <input
-              type="password"
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
-            />
-          </label>
-        )}
-        <button className="eg-button" disabled={busy}>
-          {busy
-            ? "Đang xử lý…"
-            : mode === "signup"
-              ? "Đăng ký"
-              : mode === "reset"
-                ? "Gửi thư đặt lại"
-                : mode === "update"
-                  ? "Lưu mật khẩu"
-                  : "Đăng nhập"}
-        </button>
-        <button
-          className="eg-quiet"
-          type="button"
-          onClick={() => setMode("reset")}
-        >
-          Quên mật khẩu?
-        </button>
-        {message && <p role="status">{message}</p>}
-      </form>
-    </section>
-  );
-}
 function Callback() {
   const { session, loading } = useAuth();
   if (loading) return <p role="status">Đang xác minh…</p>;
@@ -248,31 +84,7 @@ function Callback() {
   );
 }
 export function TeacherLayout({ children }: { children: ReactNode }) {
-  const { profile } = useAuth();
-  return (
-    <div className="eg-workspace">
-      <aside className="eg-sidebar">
-        <p>KHÔNG GIAN GIÁO VIÊN</p>
-        {[
-          ["/dashboard", "▦ Trò chơi của tôi"],
-          ["/builder/new", "＋ Tạo trò chơi mới"],
-          ["/library", "▧ Thư viện mẫu"],
-          ["/questions", "? Ngân hàng câu hỏi"],
-          ["/media", "▣ Tài nguyên"],
-          ["/exports", "⇩ Lịch sử xuất"],
-          ["/help", "☷ Hướng dẫn"],
-        ].map(([to, label]) => (
-          <NavLink key={to} to={to}>
-            {label}
-          </NavLink>
-        ))}
-        {profile?.role !== "teacher" && (
-          <NavLink to="/admin">⚙ Quản trị</NavLink>
-        )}
-      </aside>
-      <main className="eg-main">{children}</main>
-    </div>
-  );
+  return <div className="eg-main">{children}</div>;
 }
 function Library() {
   const [searchParams] = useSearchParams();
@@ -401,7 +213,7 @@ function Library() {
 }
 function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {
   const { subjects: catalogSubjects } = useCatalog();
-  const [showArchived, setShowArchived] = useState(false);
+  const [gamePage, setGamePage] = useState(1);
   const [data, setData] = useState<{
       games: GameRow[];
       exports: ExportRow[];
@@ -416,6 +228,13 @@ function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {
       .catch((e) => setError(e.message));
   };
   useEffect(load, []);
+  const savedGames = data?.games || [];
+  const gamePages = Math.max(1, Math.ceil(savedGames.length / 12));
+  const currentGamePage = Math.min(gamePage, gamePages);
+  const pageGames = savedGames.slice(
+    (currentGamePage - 1) * 12,
+    currentGamePage * 12,
+  );
   return (
     <TeacherLayout>
       <div className="eg-title">
@@ -437,9 +256,14 @@ function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {
         data.exports.length ? (
           <div className="eg-card">
             {data.exports.map((job) => (
-              <p key={job.id}>
-                {new Date(job.created_at).toLocaleString("vi")} · {job.status}{" "}
-                {job.error}
+              <div className="export-history-row" key={job.id}>
+                <div>
+                  <strong>{job.gameTitle || "Trò chơi chưa đặt tên"}</strong>
+                  <p>
+                    {new Date(job.created_at).toLocaleString("vi")} ·{" "}
+                    {job.status} {job.error}
+                  </p>
+                </div>
                 {job.status === "completed" && (
                   <button
                     onClick={() =>
@@ -453,7 +277,7 @@ function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {
                     Tải PowerPoint
                   </button>
                 )}
-              </p>
+              </div>
             ))}
           </div>
         ) : (
@@ -477,40 +301,82 @@ function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {
               </article>
             ))}
           </div>
-          <h2>Gần đây</h2>
-          <label>
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-            />
-            Hiện cả bài đã lưu trữ
-          </label>
-          {data.games.length ? (
-            <div className="eg-grid">
-              {data.games
-                .filter((g) => showArchived || g.status !== "archived")
-                .map((g) => (
+          <h2>Các bài đã lưu</h2>
+          {savedGames.length ? (
+            <>
+              <p role="status">
+                {savedGames.length} bài đã lưu · Hiển thị{" "}
+                {(currentGamePage - 1) * 12 + 1}–
+                {Math.min(currentGamePage * 12, savedGames.length)}
+              </p>
+              <div className="saved-game-list">
+                {pageGames.map((g) => (
                   <Link
-                    className="eg-card eg-game"
+                    className="eg-card eg-game saved-game-row"
                     key={g.id}
                     to={`/builder/${g.id}`}
                   >
                     <img src={templateRegistry[g.spec.kind].image} alt="" />
-                    <h2>{g.spec.metadata.title || "Chưa đặt tên"}</h2>
-                    <p>
-                      {catalogSubjects[g.spec.metadata.subjectId] ||
-                        subjects[g.spec.metadata.subjectId] ||
-                        g.spec.metadata.subjectId}{" "}
-                      · Lớp {g.spec.metadata.grade}
-                    </p>
-                    <span className="eg-tag">
-                      {g.status === "draft" ? "Bản nháp" : g.status} · Phiên bản
-                      lưu {g.revision}
+                    <div className="saved-game-info">
+                      <h2>{g.spec.metadata.title || "Chưa đặt tên"}</h2>
+                      <p>
+                        {catalogSubjects[g.spec.metadata.subjectId] ||
+                          subjects[g.spec.metadata.subjectId] ||
+                          g.spec.metadata.subjectId}{" "}
+                        · Lớp {g.spec.metadata.grade}
+                      </p>
+                      <span className="eg-tag">
+                        {g.status === "draft"
+                          ? "Bản nháp"
+                          : g.status === "archived"
+                            ? "Đã lưu trữ"
+                            : g.status}{" "}
+                        · Phiên bản lưu {g.revision}
+                      </span>
+                    </div>
+                    <span className="saved-game-open">
+                      Mở bài <span aria-hidden="true">→</span>
                     </span>
                   </Link>
                 ))}
-            </div>
+              </div>
+              {gamePages > 1 && (
+                <nav
+                  aria-label="Phân trang trò chơi"
+                  className="question-pagination"
+                >
+                  <button
+                    disabled={currentGamePage === 1}
+                    onClick={() => setGamePage(currentGamePage - 1)}
+                  >
+                    ← Trang trước
+                  </button>
+                  <div className="question-pagination-position">
+                    <label>
+                      <span>Trang</span>
+                      <select
+                        aria-label="Trang trò chơi"
+                        value={currentGamePage}
+                        onChange={(e) => setGamePage(Number(e.target.value))}
+                      >
+                        {Array.from({ length: gamePages }, (_, i) => (
+                          <option key={i + 1} value={i + 1}>
+                            {i + 1}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <span>/ {gamePages}</span>
+                  </div>
+                  <button
+                    disabled={currentGamePage === gamePages}
+                    onClick={() => setGamePage(currentGamePage + 1)}
+                  >
+                    Trang sau →
+                  </button>
+                </nav>
+              )}
+            </>
           ) : (
             <div className="eg-empty">
               <h2>Bài học tiếp theo bắt đầu ở đây</h2>
@@ -682,7 +548,7 @@ function Help() {
       <h1>Cùng tạo một tiết học vui</h1>
       <ol>
         <li>Đăng ký email và xác minh tài khoản.</li>
-        <li>Chọn mẫu, đặt tên và thêm nội dung theo sáu bước.</li>
+        <li>Chọn mẫu, đặt tên và thêm nội dung theo bốn bước.</li>
         <li>Chọn ảnh có quyền sử dụng từ thư viện hoặc ảnh cá nhân.</li>
         <li>Chơi thử, kiểm tra đáp án và khả năng xuất PowerPoint.</li>
       </ol>
@@ -702,86 +568,89 @@ export function StudioApp() {
       <AuthProvider>
         <div className="eg-app">
           <Header />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<Callback />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/play/:token" element={<SharedPlayer />} />
-            <Route path="/demo/:type" element={<DemoPlayer />} />
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/exports"
-              element={
-                <RequireAuth>
-                  <Dashboard exportsOnly />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/builder/:id"
-              element={
-                <RequireAuth>
-                  <TeacherLayout>
-                    <Builder />
-                  </TeacherLayout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/media"
-              element={
-                <RequireAuth>
-                  <TeacherLayout>
-                    <Media />
-                  </TeacherLayout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/questions"
-              element={
-                <RequireAuth>
-                  <TeacherLayout>
-                    <QuestionBank />
-                  </TeacherLayout>
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <RequireAuth>
-                  <AdminPanel />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/legacy"
-              element={
-                <RequireAuth>
-                  <LegacyApp />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="*"
-              element={
-                <main className="eg-help">
-                  <h1>Không tìm thấy trang</h1>
-                  <Link to="/">Về trang chủ</Link>
-                </main>
-              }
-            />
-          </Routes>
+          <SignedInLayout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/auth/callback" element={<Callback />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/play/:token" element={<SharedPlayer />} />
+              <Route path="/demo/:type" element={<DemoPlayer />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <Dashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/exports"
+                element={
+                  <RequireAuth>
+                    <Dashboard exportsOnly />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/builder/:id"
+                element={
+                  <RequireAuth>
+                    <TeacherLayout>
+                      <Builder />
+                    </TeacherLayout>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/media"
+                element={
+                  <RequireAuth>
+                    <TeacherLayout>
+                      <Media />
+                    </TeacherLayout>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/questions"
+                element={
+                  <RequireAuth>
+                    <TeacherLayout>
+                      <QuestionBank />
+                    </TeacherLayout>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <AdminPanel />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/legacy"
+                element={
+                  <RequireAuth>
+                    <LegacyApp />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <main className="eg-help">
+                    <h1>Không tìm thấy trang</h1>
+                    <Link to="/">Về trang chủ</Link>
+                  </main>
+                }
+              />
+            </Routes>
+          </SignedInLayout>
         </div>
       </AuthProvider>
     </BrowserRouter>

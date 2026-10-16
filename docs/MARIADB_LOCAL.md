@@ -76,3 +76,9 @@ Tích hợp dùng tài khoản tạm và dọn sau khi chạy; kiểm tra mail x
 ## Triển khai sau local
 
 Backend và worker cần máy Node có kết nối MariaDB và ổ đĩa bền vững cho `STORAGE_ROOT`. Cấu hình Vercel/Supabase cũ không áp dụng cho backend lưu file local; nếu dùng Vercel cho frontend, đặt `VITE_API_URL` tới backend riêng. Cần SMTP thật, HTTPS, quản lý secret, chính sách backup và lưu file bền vững trước production. Nghiệm thu PowerPoint offline tại trường, nội dung mẫu và nguồn/quyền bộ ảnh vẫn cần hoàn tất như lộ trình sản phẩm.
+
+## Cấu hình cổng local ngày 16/10/2026
+
+Cổng 3306 đang được `srs-db` sử dụng. EduGame hiện kết nối `127.0.0.1:3307` qua container `edugame-mariadb-local`, dùng lại bind dữ liệu `/e/project/data/mariadb` và cùng image MariaDB cũ. Container `laradock-mariadb-1` được giữ ở trạng thái dừng. Chỉ chạy một trong hai container MariaDB này tại một thời điểm vì chúng dùng chung thư mục dữ liệu. Container EduGame không tự khởi động lại; dùng `npm run local:start` để mở dịch vụ đã chọn trong `.env`.
+
+`local:start` và `local:env` đọc `DB_CONTAINER`/`DB_PORT` từ `.env`, không ghi đè về cổng 3306. `srs-db` không bị thay đổi.

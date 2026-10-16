@@ -210,6 +210,16 @@ try {
     }),
   );
   await sql("UPDATE profiles SET upload_limit=1 WHERE id=?", [userA]);
+  const temporary = await a.post("/api/auth/login", {
+    data: { email: account.email, password: newPassword, remember: false },
+  });
+  await body(temporary);
+  assert(!/Max-Age=|Expires=/i.test(temporary.headers()["set-cookie"] || ""));
+  const persistent = await a.post("/api/auth/login", {
+    data: { email: account.email, password: newPassword, remember: true },
+  });
+  await body(persistent);
+  assert(/Max-Age=2592000/i.test(persistent.headers()["set-cookie"] || ""));
   const reserved = await Promise.all(
     [0, 1].map(() =>
       a.post("/api/uploads/request", {

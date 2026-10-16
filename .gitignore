@@ -12,3 +12,6 @@ backups/
 .env.*
 !.env.example
 data/
+
+!src/data/
+!src/data/**

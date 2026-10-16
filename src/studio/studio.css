@@ -1132,3 +1132,60 @@
 .eg-wheel-wrap .eg-pointer { top:-6px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent; border-top:26px solid #e84d37; filter:drop-shadow(0 2px 1px #fff); font-size:0; }
 .eg-wheel-hub { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:32px; height:32px; display:grid; place-items:center; border-radius:50%; background:#fff8dc; border:3px solid #efba55; color:#c77b22; box-shadow:0 2px 5px #3d251744; pointer-events:none; }
 .eg-wheel-wrap.is-spinning .eg-wheel { box-shadow:0 0 0 4px #ffffff77,0 0 24px #ffcf65aa; }
+
+/* Builder template cards stack their preview and copy, independent of button defaults. */
+.eg-template-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 20px;
+  align-items: stretch;
+  min-width: 0;
+}
+.eg-app .eg-template-option {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  text-align: left;
+  white-space: normal;
+  border: 2px solid #dce7f5;
+  border-radius: 16px;
+  background: #fff;
+}
+.eg-template-option > .eg-asset {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.eg-template-option-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 18px;
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.eg-template-option-copy strong { font-size: 18px; line-height: 1.4; color: #153c70; }
+.eg-template-option-copy small { font-size: 13px; line-height: 1.5; color: #6a7f99; font-weight: 400; }
+.eg-template-option-state { display: block; margin-top: auto; padding-top: 6px; font-size: 14px; color: #1477df; font-weight: 700; }
+.eg-app .eg-template-option[aria-pressed=true] { border-color: #1680ff; background: #f0f7ff; box-shadow: 0 0 0 3px #1680ff13; }
+.eg-app .eg-template-option:not(:disabled):hover { border-color: #1680ff; background: #f5faff; }
+.eg-app .eg-template-option:focus-visible { outline: 3px solid #f6b73b; outline-offset: 4px; }
+@media(max-width:600px){.eg-template-options{grid-template-columns:1fr;gap:16px}.eg-template-option-copy{padding:16px}}
+
+.eg-narration-feedback { display:grid; gap:8px; margin-top:10px; }
+.eg-narration-feedback small { display:block; background:#fffffff2; color:#5f4c2f; padding:10px; border-radius:10px; line-height:1.5; font-size:12px; }
+.eg-theater .eg-narration-feedback button { font-size:13px; padding:8px 10px; width:100%; }
+@media(min-width:1000px){.eg-theater .eg-guide{overflow-y:auto;scrollbar-width:thin}}

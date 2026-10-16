@@ -30,22 +30,26 @@ export async function userForToken(token: string) {
     )[0] || null
   );
 }
-const sessionCookie = (res: express.Response, token: string) =>
+const sessionCookie = (
+  res: express.Response,
+  token: string,
+  remember: boolean,
+) =>
   res.cookie(cookieName, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 7 * 86400000,
+    ...(remember ? { maxAge: 30 * 86400000 } : {}),
     path: "/",
   });
-async function newSession(id: string, res: express.Response) {
+async function newSession(id: string, res: express.Response, remember = true) {
   const token = randomBytes(32).toString("base64url");
   await sql("INSERT INTO auth_sessions VALUES (?,?,?)", [
     hash(token),
     id,
-    new Date(Date.now() + 7 * 86400000),
+    new Date(Date.now() + (remember ? 30 * 86400000 : 8 * 3600000)),
   ]);
-  sessionCookie(res, token);
+  sessionCookie(res, token, remember);
   return {
     user: (
       await sql("SELECT id,email,email_confirmed_at FROM users WHERE id=?", [
@@ -182,15 +186,20 @@ authRouter.get("/verify", async (req, res) => {
   );
 });
 authRouter.post("/login", async (req, res) => {
-  const input = credentials.parse(req.body),
-    user = (await sql("SELECT * FROM users WHERE email=?", [input.email]))[0];
+  const input = z.object({
+      email: z.string().trim().min(1).max(254).transform(value=>value.toLowerCase()),
+      password: z.string().min(8).max(128),
+      remember: z.boolean().default(true),
+    })
+      .parse(req.body),
+    user = (await sql("SELECT * FROM users WHERE email=? OR username=?", [input.email,input.email]))[0];
   if (!user || !(await bcrypt.compare(input.password, user.password_hash)))
-    return res.status(401).json({ error: "Email hoặc mật khẩu không đúng." });
+    return res.status(401).json({ error: "Tài khoản hoặc mật khẩu không đúng." });
   if (!user.email_confirmed_at)
     return res
       .status(401)
       .json({ error: "Vui lòng xác minh email trước khi đăng nhập." });
-  res.json({ session: await newSession(user.id, res) });
+  res.json({ session: await newSession(user.id, res, input.remember) });
 });
 authRouter.get("/session", async (req, res) => {
   const user = await userForToken(requestToken(req));

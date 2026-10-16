@@ -30,14 +30,59 @@ import {
 import { readFile } from "node:fs/promises";
 import JSZip from "jszip";
 import sharp from "sharp";
-import {cropImage} from "../../server/media-crop";
+import { cropImage } from "../../server/media-crop";
 
 describe("V4.1 contract", () => {
- it("crops a new image with fit, position, zoom and alpha without modifying source",async()=>{
-  const original=await sharp({create:{width:300,height:100,channels:4,background:'#1677ff'}}).png().toBuffer(),before=Buffer.from(original);
-  const result=await cropImage(original,{fit:"contain",x:100,y:0,zoom:1,opacity:.5,aspect:"4:5"}),metadata=await sharp(result).metadata();
-  expect(metadata.width).toBe(512);expect(metadata.height).toBe(640);expect(metadata.hasAlpha).toBe(true);expect(original.equals(before)).toBe(true);
- });
+  it.each([1, 5, 12])(
+    "supports %i journey stages and complete PPTX links",
+    async (count) => {
+      const s = await migrateLegacy(sampleGame(), async () =>
+        crypto.randomUUID(),
+      );
+      if (s.kind !== "journey") throw Error();
+      const base = s.content.stages[0];
+      s.content.stages = Array.from({ length: count }, (_, i) => ({
+        ...structuredClone(base),
+        id: crypto.randomUUID(),
+        title: `Chặng ${i + 1}`,
+        questions: [
+          { ...structuredClone(base.questions[0]), id: crypto.randomUUID() },
+        ],
+      }));
+      expect(studioSpecSchema.safeParse(s).success).toBe(true);
+      const nodes = journeySlides(s),
+        ids = new Set(nodes.map((n) => n.id));
+      for (const node of nodes)
+        for (const b of node.buttons) expect(ids.has(b.target)).toBe(true);
+      expect(
+        nodes.find((n) => n.id === `correct-${count - 1}-0`)!.buttons[0].target,
+      ).toBe("summary");
+      if (count === 5)
+        expect((await renderPptx(s, new Map())).length).toBeGreaterThan(1000);
+    },
+    30000,
+  );
+  it("crops a new image with fit, position, zoom and alpha without modifying source", async () => {
+    const original = await sharp({
+        create: { width: 300, height: 100, channels: 4, background: "#1677ff" },
+      })
+        .png()
+        .toBuffer(),
+      before = Buffer.from(original);
+    const result = await cropImage(original, {
+        fit: "contain",
+        x: 100,
+        y: 0,
+        zoom: 1,
+        opacity: 0.5,
+        aspect: "4:5",
+      }),
+      metadata = await sharp(result).metadata();
+    expect(metadata.width).toBe(512);
+    expect(metadata.height).toBe(640);
+    expect(metadata.hasAlpha).toBe(true);
+    expect(original.equals(before)).toBe(true);
+  });
   it("allows incomplete drafts but blocks play; rejects the legacy version", () => {
     const draft = createStudioGame();
     expect(studioSpecSchema.safeParse(draft).success).toBe(true);
@@ -89,9 +134,75 @@ describe("V4.1 contract", () => {
     expect(nodes.length).toBe(43);
     for (const node of nodes)
       for (const b of node.buttons) expect(ids.has(b.target)).toBe(true);
+    s.appearance = {
+      font: "Georgia",
+      text: "#123456",
+      question: "#abcdef",
+      answer: "#fedcba",
+      heading: "#654321",
+    };
     const result = await renderPptx(s, new Map());
+    const zip = await JSZip.loadAsync(result);
+    const theme = await zip.file("ppt/theme/theme1.xml")!.async("string");
+    expect(theme).toContain("Georgia");
+    const xmls = await Promise.all(
+      Object.keys(zip.files)
+        .filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p))
+        .map((p) => zip.file(p)!.async("string")),
+    );
+    const xml = xmls.join("");
+    for (const color of ["123456", "abcdef", "fedcba", "654321"])
+      expect(xml.toLowerCase()).toContain(color);
+    expect(xml).toContain("Thời gian:");
+    expect(xml).toContain(" : ____");
+    // Default scenery plus the default character are both embedded offline.
+    expect(
+      Object.keys(zip.files).filter(
+        (p) => p.startsWith("ppt/media/") && !zip.files[p].dir,
+      ).length,
+    ).toBeGreaterThan(4);
     expect(result.subarray(0, 2).toString()).toBe("PK");
     expect(result.length).toBeLessThan(50 * 1024 * 1024);
+  }, 30000);
+  it("exports the selected character and rejects missing selected media", async () => {
+    const s = await migrateLegacy(sampleGame(), async () =>
+      crypto.randomUUID(),
+    );
+    const id = crypto.randomUUID();
+    s.media.characterId = id;
+    await expect(renderPptx(s, new Map())).rejects.toThrow("nhân vật");
+    const image = await sharp({
+      create: { width: 200, height: 100, channels: 4, background: "#ff00aa" },
+    })
+      .png()
+      .toBuffer();
+    const result = await renderPptx(s, new Map([[id, image]]));
+    const zip = await JSZip.loadAsync(result);
+    const media = await Promise.all(
+      Object.keys(zip.files)
+        .filter((p) => p.startsWith("ppt/media/") && !zip.files[p].dir)
+        .map((p) => zip.file(p)!.async("nodebuffer")),
+    );
+    const pixels = await Promise.all(
+      media.map(async (b) => {
+        try {
+          return await sharp(b).stats();
+        } catch {
+          return null;
+        }
+      }),
+    );
+    expect(
+      pixels.some(
+        (stats) =>
+          stats &&
+          stats.channels[0].mean === 255 &&
+          stats.channels[1].mean === 0 &&
+          stats.channels[2].mean === 170,
+      ),
+    ).toBe(true);
+    const xml = await zip.file("ppt/slides/slide1.xml")!.async("string");
+    expect(xml).toContain('cx="1234440" cy="617220"');
   }, 30000);
   it.each([4, 6, 9] as const)(
     "picture grid %i supports only correct reveal and linear PPTX",

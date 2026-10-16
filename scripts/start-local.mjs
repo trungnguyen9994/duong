@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
+import "dotenv/config";
 const inspect = (name) => {
   try {
     return JSON.parse(
@@ -26,7 +27,7 @@ if (!inspect(container))
       "--restart",
       "unless-stopped",
       "-p",
-      "127.0.0.1:3306:3306",
+      `127.0.0.1:${process.env.DB_PORT || 3306}:3306`,
       "-v",
       "edugame_mariadb:/var/lib/mysql",
       "-e",

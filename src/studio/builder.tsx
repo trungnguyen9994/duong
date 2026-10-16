@@ -1,3 +1,4 @@
+import { defaultGameTheme } from "./game-theme";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -23,14 +24,16 @@ import { QuestionBank } from "./QuestionBank";
 import { GamePlayer } from "./GamePlayer";
 import { PlayerOverlay } from "./PlayerOverlay";
 import { useCatalog } from "./useCatalog";
+import { BuilderPreview } from "./BuilderPreview";
+import { QuestionEditor } from "./QuestionEditor";
+import "./simple-builder.css";
 
-const steps = [
-  "Thông tin",
-  "Chọn mẫu",
-  "Nội dung",
-  "Hình ảnh",
-  "Luật chơi",
-  "Xem trước / xuất",
+const steps = ["Bắt đầu", "Câu hỏi", "Tùy chỉnh", "Hoàn tất"];
+const stepHelp = [
+  "Chọn mẫu và đặt tên bài. Các mục khác đã có sẵn để bạn bắt đầu nhanh.",
+  "Soạn từng câu và chọn đáp án đúng. Với Hành trình, mỗi chặng cần ít nhất một câu. Bạn có thể thêm hoặc xóa chặng.",
+  "Chọn cách chơi và người tham gia. Có thể giữ nguyên các thiết lập còn lại.",
+  "Kiểm tra bài, chơi thử rồi sử dụng trên Web hoặc xuất PowerPoint.",
 ];
 const newQuestion = (): Mcq => ({
   id: crypto.randomUUID(),
@@ -49,6 +52,7 @@ export function Builder() {
     [revision, setRevision] = useState(0),
     [step, setStep] = useState(0),
     [stage, setStage] = useState(0),
+    [activeQuestion, setActiveQuestion] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [conflict, setConflict] = useState(false),
@@ -406,7 +410,7 @@ export function Builder() {
           </button>
         </div>
       )}
-      <div className="eg-wizard">
+      <div className="eg-wizard eg-builder-workbench">
         <nav aria-label="Các bước thiết kế">
           {steps.map((name, i) => (
             <button
@@ -423,12 +427,51 @@ export function Builder() {
             <h2>
               {step + 1}. {steps[step]}
             </h2>
+            <p className="simple-step-help">{stepHelp[step]}</p>
+            {step === 0 && (
+              <div className="eg-template-options">
+                {templateTypes.map((type) => (
+                  <button
+                    className="eg-card eg-template-option"
+                    key={type}
+                    disabled={busy || !enabledTemplates.includes(type)}
+                    aria-pressed={spec.kind === type}
+                    onClick={() => void changeTemplate(type)}
+                  >
+                    <img
+                      className="eg-asset"
+                      src={templateRegistry[type].image}
+                      alt=""
+                    />
+                    <span className="eg-template-option-copy">
+                      <strong>{templateRegistry[type].name}</strong>
+                      <small>
+                        {templateRegistry[type].released
+                          ? "Phiên bản 1 · Web và PowerPoint"
+                          : "Sắp ra mắt"}
+                      </small>
+                      <span className="eg-template-option-state">
+                        {spec.kind === type
+                          ? "✓ Đang chọn"
+                          : enabledTemplates.includes(type)
+                            ? "Chọn mẫu →"
+                            : "Chưa khả dụng"}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
             {step === 0 && (
               <>
                 <label>
                   Tên trò chơi
                   <input
                     maxLength={120}
+                    placeholder="Ví dụ: Ôn tập bảng nhân 3"
+                    onFocus={(e) => {
+                      if (e.target.value === "Trò chơi mới") e.target.select();
+                    }}
                     value={spec.metadata.title}
                     onChange={(e) =>
                       edit((s) => {
@@ -437,18 +480,23 @@ export function Builder() {
                     }
                   />
                 </label>
-                <label>
-                  Mô tả
-                  <textarea
-                    maxLength={600}
-                    value={spec.metadata.description}
-                    onChange={(e) =>
-                      edit((s) => {
-                        s.metadata.description = e.target.value;
-                      })
-                    }
-                  />
-                </label>
+                <details className="simple-optional">
+                  <summary>
+                    Thêm mô tả <span>Không bắt buộc</span>
+                  </summary>
+                  <label>
+                    Mô tả
+                    <textarea
+                      maxLength={600}
+                      value={spec.metadata.description}
+                      onChange={(e) =>
+                        edit((s) => {
+                          s.metadata.description = e.target.value;
+                        })
+                      }
+                    />
+                  </label>
+                </details>
                 <div className="eg-grid">
                   <label>
                     Môn học
@@ -483,104 +531,84 @@ export function Builder() {
                     </select>
                   </label>
                 </div>
-                <label>
-                  Nhập JSON mới / bài cũ
-                  <input
-                    type="file"
-                    accept="application/json,.json"
-                    onChange={(e) => {
-                      if (e.target.files?.[0])
-                        void importJson(e.target.files[0]);
-                      e.target.value = "";
-                    }}
-                  />
-                </label>
-                <button
-                  onClick={() =>
-                    void listDrafts()
-                      .then((rows) => {
-                        download(
-                          new Blob([JSON.stringify(rows, null, 2)], {
-                            type: "application/json",
-                          }),
-                          "kho-bai-cu-backup.json",
-                        );
-                        setMessage(
-                          `Đã sao lưu ${rows.length} bài cũ. Dữ liệu gốc vẫn được giữ.`,
-                        );
-                      })
-                      .catch((e) => setMessage(e.message))
-                  }
-                >
-                  Sao lưu kho IndexedDB cũ
-                </button>
-                <button
-                  onClick={() =>
-                    void listDrafts()
-                      .then((rows) => {
-                        setLegacyDrafts(rows);
-                        if (!rows.length)
-                          setMessage("Không có bài cũ trong trình duyệt này.");
-                      })
-                      .catch((e) => setMessage(e.message))
-                  }
-                >
-                  Nhập từ kho bài cũ
-                </button>
-                {legacyDrafts.length > 0 && (
-                  <div className="eg-card">
-                    <p>
-                      Nên sao lưu trước khi chuyển. Bản gốc trong trình duyệt
-                      luôn được giữ nguyên.
-                    </p>
-                    {legacyDrafts.map((draft) => (
-                      <div className="eg-title" key={draft.spec.id}>
-                        <span>{draft.spec.title}</span>
-                        <button
-                          onClick={() =>
-                            void importJson(
-                              new File(
-                                [JSON.stringify(draft.spec)],
-                                "bai-cu.json",
-                                { type: "application/json" },
-                              ),
-                            )
-                          }
-                        >
-                          Tạo bản sao vào tài khoản
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <details className="simple-optional">
+                  <summary>Nhập bài có sẵn / chuyển bài cũ</summary>
+                  <label>
+                    Nhập JSON mới / bài cũ
+                    <input
+                      type="file"
+                      accept="application/json,.json"
+                      onChange={(e) => {
+                        if (e.target.files?.[0])
+                          void importJson(e.target.files[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <button
+                    onClick={() =>
+                      void listDrafts()
+                        .then((rows) => {
+                          download(
+                            new Blob([JSON.stringify(rows, null, 2)], {
+                              type: "application/json",
+                            }),
+                            "kho-bai-cu-backup.json",
+                          );
+                          setMessage(
+                            `Đã sao lưu ${rows.length} bài cũ. Dữ liệu gốc vẫn được giữ.`,
+                          );
+                        })
+                        .catch((e) => setMessage(e.message))
+                    }
+                  >
+                    Sao lưu kho bài cũ trong trình duyệt
+                  </button>
+                  <button
+                    onClick={() =>
+                      void listDrafts()
+                        .then((rows) => {
+                          setLegacyDrafts(rows);
+                          if (!rows.length)
+                            setMessage(
+                              "Không có bài cũ trong trình duyệt này.",
+                            );
+                        })
+                        .catch((e) => setMessage(e.message))
+                    }
+                  >
+                    Nhập từ kho bài cũ
+                  </button>
+                  {legacyDrafts.length > 0 && (
+                    <div className="eg-card">
+                      <p>
+                        Nên sao lưu trước khi chuyển. Bản gốc trong trình duyệt
+                        luôn được giữ nguyên.
+                      </p>
+                      {legacyDrafts.map((draft) => (
+                        <div className="eg-title" key={draft.spec.id}>
+                          <span>{draft.spec.title}</span>
+                          <button
+                            onClick={() =>
+                              void importJson(
+                                new File(
+                                  [JSON.stringify(draft.spec)],
+                                  "bai-cu.json",
+                                  { type: "application/json" },
+                                ),
+                              )
+                            }
+                          >
+                            Tạo bản sao vào tài khoản
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </details>
               </>
             )}
             {step === 1 && (
-              <div className="eg-grid">
-                {templateTypes.map((type) => (
-                  <button
-                    className="eg-card"
-                    key={type}
-                    disabled={busy || !enabledTemplates.includes(type)}
-                    aria-pressed={spec.kind === type}
-                    onClick={() => void changeTemplate(type)}
-                  >
-                    <img
-                      className="eg-asset"
-                      src={templateRegistry[type].image}
-                      alt=""
-                    />
-                    {templateRegistry[type].name}
-                    <small>
-                      {templateRegistry[type].released
-                        ? "Phiên bản 1 · Web và PowerPoint"
-                        : "Sắp ra mắt"}
-                    </small>
-                  </button>
-                ))}
-              </div>
-            )}
-            {step === 2 && (
               <>
                 {spec.kind === "journey" && (
                   <>
@@ -595,18 +623,69 @@ export function Builder() {
                         </button>
                       ))}
                     </div>
-                    <label>
-                      Tên chặng
-                      <input
-                        value={spec.content.stages[stage].title}
-                        onChange={(e) =>
+                    <div
+                      className="eg-actions"
+                      style={{ margin: "12px 0", flexWrap: "wrap" }}
+                    >
+                      <button
+                        disabled={spec.content.stages.length >= 12}
+                        onClick={() => {
+                          const next = spec.content.stages.length;
                           edit((s) => {
                             if (s.kind === "journey")
-                              s.content.stages[stage].title = e.target.value;
-                          })
-                        }
-                      />
-                    </label>
+                              s.content.stages.push({
+                                id: crypto.randomUUID(),
+                                title: "Chặng mới",
+                                multiplier: 1,
+                                questions: [],
+                              });
+                          });
+                          setStage(next);
+                        }}
+                      >
+                        ＋ Thêm chặng
+                      </button>
+                      <button
+                        disabled={spec.content.stages.length <= 1}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              "Xóa chặng này và các câu hỏi trong chặng?",
+                            )
+                          )
+                            return;
+                          const next = Math.max(0, stage - 1);
+                          edit((s) => {
+                            if (s.kind === "journey")
+                              s.content.stages.splice(stage, 1);
+                          });
+                          setStage(next);
+                          setMediaTarget("backgroundId");
+                          setActiveQuestion("");
+                        }}
+                      >
+                        Xóa chặng hiện tại
+                      </button>
+                      <small>
+                        {spec.content.stages.length}/12 chặng · Tối thiểu 1
+                        chặng
+                      </small>
+                    </div>
+                    <details className="simple-optional">
+                      <summary>Đổi tên chặng</summary>
+                      <label>
+                        Tên chặng
+                        <input
+                          value={spec.content.stages[stage].title}
+                          onChange={(e) =>
+                            edit((s) => {
+                              if (s.kind === "journey")
+                                s.content.stages[stage].title = e.target.value;
+                            })
+                          }
+                        />
+                      </label>
+                    </details>
                   </>
                 )}
                 {spec.kind === "picture_reveal" && (
@@ -688,87 +767,19 @@ export function Builder() {
                   </>
                 ) : (
                   <>
-                    {currentQuestions.map((q, i) => (
-                      <fieldset key={q.id}>
-                        <legend>Câu {i + 1}</legend>
-                        <label>
-                          Đề bài
-                          <textarea
-                            maxLength={400}
-                            value={q.prompt}
-                            onChange={(e) =>
-                              updateQuestion(i, { prompt: e.target.value })
-                            }
-                          />
-                        </label>
-                        <div className="eg-grid">
-                          {q.choices.map((choice, j) => (
-                            <label key={j}>
-                              {"ABCD"[j]}.{" "}
-                              <input
-                                value={choice}
-                                maxLength={180}
-                                onChange={(e) => {
-                                  const choices = [...q.choices];
-                                  choices[j] = e.target.value;
-                                  updateQuestion(i, { choices });
-                                }}
-                              />
-                              <span>
-                                <input
-                                  type="radio"
-                                  name={q.id}
-                                  checked={q.correct === j}
-                                  onChange={() =>
-                                    updateQuestion(i, { correct: j })
-                                  }
-                                />{" "}
-                                Đáp án đúng
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                        <label>
-                          Gợi ý
-                          <input
-                            value={q.hint}
-                            onChange={(e) =>
-                              updateQuestion(i, { hint: e.target.value })
-                            }
-                          />
-                        </label>
-                        <label>
-                          Giải thích
-                          <input
-                            value={q.explanation}
-                            onChange={(e) =>
-                              updateQuestion(i, { explanation: e.target.value })
-                            }
-                          />
-                        </label>
-                        <button
-                          onClick={() =>
-                            edit((s) => {
-                              const qs =
-                                s.kind === "journey"
-                                  ? s.content.stages[stage].questions
-                                  : s.kind === "picture_reveal"
-                                    ? s.content.questions
-                                    : [];
-                              qs.splice(i, 1);
-                            })
-                          }
-                        >
-                          Xóa câu
-                        </button>
-                      </fieldset>
-                    ))}
-                    <button
-                      disabled={
-                        currentQuestions.length >=
-                        (spec.kind === "journey" ? 12 : 9)
+                    <QuestionEditor
+                      active={activeQuestion}
+                      onActive={setActiveQuestion}
+                      questions={currentQuestions}
+                      max={
+                        spec.kind === "journey"
+                          ? 12
+                          : spec.kind === "picture_reveal"
+                            ? spec.content.size
+                            : 0
                       }
-                      onClick={() =>
+                      onUpdate={updateQuestion}
+                      onAdd={() =>
                         edit((s) => {
                           (s.kind === "journey"
                             ? s.content.stages[stage].questions
@@ -778,15 +789,276 @@ export function Builder() {
                           ).push(newQuestion());
                         })
                       }
-                    >
-                      ＋ Thêm câu hỏi
-                    </button>
+                      onRemove={(i) =>
+                        edit((s) => {
+                          (s.kind === "journey"
+                            ? s.content.stages[stage].questions
+                            : s.kind === "picture_reveal"
+                              ? s.content.questions
+                              : []
+                          ).splice(i, 1);
+                        })
+                      }
+                      onDuplicate={(i) =>
+                        edit((s) => {
+                          const qs =
+                            s.kind === "journey"
+                              ? s.content.stages[stage].questions
+                              : s.kind === "picture_reveal"
+                                ? s.content.questions
+                                : [];
+                          if (
+                            qs.length <
+                            (s.kind === "journey"
+                              ? 12
+                              : s.kind === "picture_reveal"
+                                ? s.content.size
+                                : 0)
+                          )
+                            qs.splice(i + 1, 0, {
+                              ...structuredClone(qs[i]),
+                              id: crypto.randomUUID(),
+                            });
+                        })
+                      }
+                    />
+                    {spec.kind === "journey" &&
+                      stage <
+                        (spec.kind === "journey"
+                          ? spec.content.stages.length - 1
+                          : 0) &&
+                      currentQuestions.length > 0 && (
+                        <button
+                          className="simple-next-stage"
+                          onClick={() => setStage(stage + 1)}
+                        >
+                          Soạn chặng {stage + 2} →
+                        </button>
+                      )}
                   </>
                 )}
               </>
             )}
-            {step === 3 && (
+            {step === 1 && spec.kind !== "word_wheel" && (
+              <details>
+                <summary>Thêm từ ngân hàng câu hỏi</summary>
+                <QuestionBank
+                  select={(q) =>
+                    edit((s) => {
+                      const qs =
+                        s.kind === "journey"
+                          ? s.content.stages[stage].questions
+                          : s.kind === "picture_reveal"
+                            ? s.content.questions
+                            : [];
+                      if (
+                        qs.length <
+                        (s.kind === "journey"
+                          ? 12
+                          : s.kind === "picture_reveal"
+                            ? s.content.size
+                            : 0)
+                      )
+                        qs.push(q);
+                    })
+                  }
+                />
+              </details>
+            )}
+            {step === 2 && (
               <>
+                <label>
+                  Hình thức chơi
+                  <select
+                    value={spec.settings.playMode || "teams"}
+                    onChange={(e) =>
+                      edit((s) => {
+                        s.settings.playMode = e.target.value as
+                          "individual" | "teams";
+                      })
+                    }
+                  >
+                    <option value="individual">
+                      Cá nhân – gọi từng học sinh
+                    </option>
+                    <option value="teams">Theo tổ / đội</option>
+                  </select>
+                </label>
+                <p>
+                  {spec.settings.playMode === "individual"
+                    ? "Nhập danh sách lớp (tối đa 50 học sinh). Khi chơi, giáo viên chọn tên để gọi trả lời; điểm được ghi riêng cho từng em."
+                    : "Nhập tên các tổ hoặc đội. Khi chơi có thể chọn tổ trả lời; điểm được ghi riêng cho mỗi tổ."}
+                </p>
+                <label>
+                  {spec.settings.playMode === "individual"
+                    ? "Tên học sinh (mỗi dòng một em)"
+                    : "Tên tổ / đội (mỗi dòng một tổ)"}
+                  <textarea
+                    value={spec.settings.teams.join("\n")}
+                    onChange={(e) =>
+                      edit((s) => {
+                        s.settings.teams = e.target.value
+                          .split("\n")
+                          .slice(0, 50);
+                      })
+                    }
+                  />
+                </label>
+                <details className="simple-optional">
+                  <summary>Font chữ và màu sắc</summary>
+                  <p>
+                    Áp dụng cho tiêu đề, câu hỏi và đáp án. Chọn màu chữ tương
+                    phản với nền để học sinh dễ đọc.
+                  </p>
+                  <div className="game-theme-fields">
+                    <label>
+                      Font chữ
+                      <select
+                        aria-label="Font chữ trò chơi"
+                        value={spec.appearance?.font || defaultGameTheme.font}
+                        onChange={(e) =>
+                          edit((s) => {
+                            s.appearance = {
+                              ...(s.appearance || defaultGameTheme),
+                              font: e.target
+                                .value as typeof defaultGameTheme.font,
+                            };
+                          })
+                        }
+                      >
+                        {["Roboto", "Arial", "Tahoma", "Georgia"].map((f) => (
+                          <option key={f}>{f}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {(
+                      [
+                        ["text", "Màu chữ"],
+                        ["question", "Nền khối câu hỏi"],
+                        ["answer", "Nền khối đáp án"],
+                        ["heading", "Nền khối tiêu đề"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <label key={key}>
+                        {label}
+                        <input
+                          type="color"
+                          aria-label={label}
+                          value={(spec.appearance || defaultGameTheme)[key]}
+                          onChange={(e) =>
+                            edit((s) => {
+                              s.appearance = {
+                                ...(s.appearance || defaultGameTheme),
+                                [key]: e.target.value,
+                              };
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() =>
+                      edit((s) => {
+                        delete s.appearance;
+                      })
+                    }
+                  >
+                    Khôi phục giao diện mặc định
+                  </button>
+                </details>
+                <p className="simple-default-rules">
+                  Đang dùng:{" "}
+                  {spec.settings.timerSeconds
+                    ? `${spec.settings.timerSeconds} giây/câu`
+                    : "không giới hạn giờ"}{" "}
+                  · Đúng lần đầu {spec.settings.pointsFirst} điểm · Sau gợi ý{" "}
+                  {spec.settings.pointsRetry} điểm
+                </p>
+                <details className="simple-optional">
+                  <summary>Điều chỉnh thời gian, điểm và âm thanh</summary>
+                  {(
+                    [
+                      ["timerSeconds", "Thời gian mỗi câu (0 = tắt)", 300],
+                      ["pointsFirst", "Điểm đúng lần đầu", 100],
+                      ["pointsRetry", "Điểm sau gợi ý", 100],
+                    ] as const
+                  ).map(([key, label, max]) => (
+                    <label key={key}>
+                      {label}
+                      <input
+                        type="number"
+                        min={0}
+                        max={max}
+                        value={spec.settings[key]}
+                        onChange={(e) =>
+                          edit((s) => {
+                            s.settings[key] = Math.min(
+                              max,
+                              Math.max(0, Number(e.target.value)),
+                            );
+                          })
+                        }
+                      />
+                    </label>
+                  ))}
+                  {spec.kind === "journey" &&
+                    spec.content.stages.map((st, i) => (
+                      <label key={st.id}>
+                        Hệ số chặng {i + 1}
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={st.multiplier}
+                          onChange={(e) =>
+                            edit((s) => {
+                              if (s.kind === "journey")
+                                s.content.stages[i].multiplier = Math.min(
+                                  10,
+                                  Math.max(1, Number(e.target.value)),
+                                );
+                            })
+                          }
+                        />
+                      </label>
+                    ))}
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={spec.settings.muted}
+                      onChange={(e) =>
+                        edit((s) => {
+                          s.settings.muted = e.target.checked;
+                        })
+                      }
+                    />
+                    Tắt âm mặc định
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={spec.settings.reducedMotion}
+                      onChange={(e) =>
+                        edit((s) => {
+                          s.settings.reducedMotion = e.target.checked;
+                        })
+                      }
+                    />
+                    Giảm chuyển động
+                  </label>
+                </details>
+              </>
+            )}
+            {step === 2 && (
+              <details className="simple-optional">
+                <summary>
+                  Hình ảnh và nhân vật <span>Không bắt buộc</span>
+                </summary>
+                <p className="simple-field-help">
+                  Bài đã có sẵn nền và nhân vật. Mở mục này khi muốn dùng ảnh
+                  riêng.
+                </p>
                 <label>
                   Vị trí sử dụng
                   <select
@@ -947,125 +1219,9 @@ export function Builder() {
                 >
                   Lưu mô tả ảnh cá nhân
                 </button>
-              </>
-            )}
-            {step === 2 && spec.kind !== "word_wheel" && (
-              <details>
-                <summary>Thêm từ ngân hàng câu hỏi</summary>
-                <QuestionBank
-                  select={(q) =>
-                    edit((s) => {
-                      const qs =
-                        s.kind === "journey"
-                          ? s.content.stages[stage].questions
-                          : s.kind === "picture_reveal"
-                            ? s.content.questions
-                            : [];
-                      if (qs.length < (s.kind === "journey" ? 12 : 9))
-                        qs.push(q);
-                    })
-                  }
-                />
               </details>
             )}
-            {step === 4 && (
-              <>
-                <label>
-                  Hình thức chơi
-                  <select value={spec.settings.playMode || "teams"} onChange={(e) => edit((s) => {
-                    s.settings.playMode = e.target.value as "individual" | "teams";
-                  })}>
-                    <option value="individual">Cá nhân – gọi từng học sinh</option>
-                    <option value="teams">Theo tổ / đội</option>
-                  </select>
-                </label>
-                <p>{spec.settings.playMode === "individual" ? "Nhập danh sách lớp (tối đa 50 học sinh). Khi chơi, giáo viên chọn tên để gọi trả lời; điểm được ghi riêng cho từng em." : "Nhập tên các tổ hoặc đội. Khi chơi có thể chọn tổ trả lời; điểm được ghi riêng cho mỗi tổ."}</p>
-                <label>
-                  {spec.settings.playMode === "individual" ? "Tên học sinh (mỗi dòng một em)" : "Tên tổ / đội (mỗi dòng một tổ)"}
-                  <textarea
-                    value={spec.settings.teams.join("\n")}
-                    onChange={(e) =>
-                      edit((s) => {
-                        s.settings.teams = e.target.value
-                          .split("\n")
-                          .slice(0, 50);
-                      })
-                    }
-                  />
-                </label>
-                {(
-                  [
-                    ["timerSeconds", "Thời gian mỗi câu (0 = tắt)", 300],
-                    ["pointsFirst", "Điểm đúng lần đầu", 100],
-                    ["pointsRetry", "Điểm sau gợi ý", 100],
-                  ] as const
-                ).map(([key, label, max]) => (
-                  <label key={key}>
-                    {label}
-                    <input
-                      type="number"
-                      min={0}
-                      max={max}
-                      value={spec.settings[key]}
-                      onChange={(e) =>
-                        edit((s) => {
-                          s.settings[key] = Math.min(
-                            max,
-                            Math.max(0, Number(e.target.value)),
-                          );
-                        })
-                      }
-                    />
-                  </label>
-                ))}
-                {spec.kind === "journey" &&
-                  spec.content.stages.map((st, i) => (
-                    <label key={st.id}>
-                      Hệ số chặng {i + 1}
-                      <input
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={st.multiplier}
-                        onChange={(e) =>
-                          edit((s) => {
-                            if (s.kind === "journey")
-                              s.content.stages[i].multiplier = Math.min(
-                                10,
-                                Math.max(1, Number(e.target.value)),
-                              );
-                          })
-                        }
-                      />
-                    </label>
-                  ))}
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={spec.settings.muted}
-                    onChange={(e) =>
-                      edit((s) => {
-                        s.settings.muted = e.target.checked;
-                      })
-                    }
-                  />
-                  Tắt âm mặc định
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={spec.settings.reducedMotion}
-                    onChange={(e) =>
-                      edit((s) => {
-                        s.settings.reducedMotion = e.target.checked;
-                      })
-                    }
-                  />
-                  Giảm chuyển động
-                </label>
-              </>
-            )}
-            {step === 5 && (
+            {step === 3 && (
               <>
                 <h3>Kiểm tra trước khi dùng trên lớp</h3>
                 {errors.length ? (
@@ -1147,38 +1303,50 @@ export function Builder() {
                       ? "PowerPoint mở ô cố định từ trái sang phải, trên xuống dưới. Giáo viên điều hành đoán tranh và ghi điểm."
                       : "PowerPoint mở chữ theo kịch bản, giáo viên quay và ghi điểm thủ công."}
                 </p>
-                <button
-                  disabled={
-                    errors.length > 0 || !templateRegistry[spec.kind].released
-                  }
-                  onClick={() => setPlaying(true)}
-                >
-                  Chơi thử
-                </button>
-                <button
-                  disabled={
-                    errors.length > 0 ||
-                    !templateRegistry[spec.kind].released ||
-                    exporting
-                  }
-                  onClick={() => void exportGame()}
-                >
-                  {exporting ? "Đang xuất…" : "Xuất PowerPoint"}
-                </button>
+                <div className="eg-actions builder-export-actions">
+                  <button
+                    disabled={
+                      errors.length > 0 || !templateRegistry[spec.kind].released
+                    }
+                    onClick={() => setPlaying(true)}
+                  >
+                    Chơi thử
+                  </button>
+                  <button
+                    disabled={
+                      errors.length > 0 ||
+                      !templateRegistry[spec.kind].released ||
+                      exporting
+                    }
+                    onClick={() => void exportGame()}
+                  >
+                    {exporting ? "Đang xuất…" : "Xuất PowerPoint"}
+                  </button>
+                </div>
               </>
             )}
             <footer className="eg-title">
               <button disabled={step === 0} onClick={() => setStep(step - 1)}>
                 ← Quay lại
               </button>
-              {step < 5 && (
+              {step < 3 && (
                 <button className="eg-button" onClick={() => setStep(step + 1)}>
-                  Tiếp theo →
+                  {`Tiếp theo: ${steps[step + 1]} →`}
                 </button>
               )}
             </footer>
           </fieldset>
         </section>
+        <BuilderPreview
+          questionId={activeQuestion}
+          onQuestionChange={setActiveQuestion}
+          spec={spec}
+          stage={stage}
+          canPlay={
+            !busy && errors.length === 0 && templateRegistry[spec.kind].released
+          }
+          onPlay={() => setPlaying(true)}
+        />
       </div>
     </>
   );

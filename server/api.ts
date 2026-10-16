@@ -1,3 +1,4 @@
+import { defaultQuestions } from "../src/data/default-questions";
 import express from "express";
 import cors from "cors";
 import { timingSafeEqual } from "node:crypto";
@@ -161,7 +162,9 @@ app.get("/api/dashboard", async (_req, res) => {
       .order("updated_at", { ascending: false }),
     admin
       .from("jobs")
-      .select("id,kind,status,error,result,created_at", { count: "exact" })
+      .select("id,kind,status,error,result,created_at,payload", {
+        count: "exact",
+      })
       .eq("owner_id", id)
       .eq("kind", "export")
       .order("created_at", { ascending: false })
@@ -174,7 +177,11 @@ app.get("/api/dashboard", async (_req, res) => {
   checked(sessions);
   res.json({
     games: checked(games),
-    exports: checked(jobs),
+    exports: checked(jobs).map(({ payload, ...job }: Record<string, any>) => ({
+      ...job,
+      gameTitle:
+        payload?.spec?.metadata?.title?.trim() || "Trò chơi chưa đặt tên",
+    })),
     exportsCount: jobs.count || 0,
     plays: sessions.count || 0,
   });
@@ -759,17 +766,22 @@ app.post("/api/admin/assets/:id/publish", async (req, res) => {
   res.json({ id: copyId });
 });
 app.get("/api/questions", async (_req, res) =>
-  res.json(
-    checked(
+  res.json([
+    ...defaultQuestions,
+    ...checked(
       await admin
         .from("questions")
         .select("*")
         .eq("owner_id", owner(res))
         .order("created_at", { ascending: false }),
     ),
-  ),
+  ]),
 );
 app.put("/api/questions/:id", async (req, res) => {
+  if (defaultQuestions.some((q) => q.id === req.params.id))
+    return res.status(403).json({
+      error: "Câu hỏi mặc định chỉ được đọc. Hãy lưu bản riêng để chỉnh sửa.",
+    });
   const id = z.string().uuid().parse(req.params.id),
     body = mcqSchema.parse(req.body.body),
     revision = z.number().int().nonnegative().parse(req.body.revision);
@@ -818,6 +830,10 @@ app.put("/api/questions/:id", async (req, res) => {
   res.json(row);
 });
 app.delete("/api/questions/:id", async (req, res) => {
+  if (defaultQuestions.some((q) => q.id === req.params.id))
+    return res.status(403).json({
+      error: "Câu hỏi mặc định chỉ được đọc. Hãy lưu bản riêng để chỉnh sửa.",
+    });
   const revision = z.coerce.number().int().positive().parse(req.query.revision);
   const rows = checked(
     await admin

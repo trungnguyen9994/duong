@@ -1,0 +1,105 @@
+.saved-game-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+.eg-app .saved-game-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  text-decoration: none;
+}
+.eg-app .saved-game-row > img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 0;
+}
+.eg-app .saved-game-info {
+  min-width: 0;
+  flex: 1;
+}
+.eg-app .saved-game-info h2 {
+  font-size: 15px;
+  line-height: 1.4;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.eg-app .saved-game-info p {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.eg-app .saved-game-info .eg-tag {
+  font-size: 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.eg-app .saved-game-open {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0879ff;
+  white-space: nowrap;
+  padding: 8px;
+  border: 1px solid #d0e3ff;
+  border-radius: 8px;
+  text-align: center;
+}
+@media (max-width: 1199px) {
+  .saved-game-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 900px) {
+  .saved-game-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .saved-game-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .eg-app .saved-game-row {
+    padding: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .saved-game-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.eg-app .export-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e4edf7;
+}
+.eg-app .export-history-row:last-child {
+  border-bottom: 0;
+}
+.eg-app .export-history-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.eg-app .export-history-row p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+.eg-app .export-history-row button {
+  flex-shrink: 0;
+}
+@media (max-width: 600px) {
+  .eg-app .export-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+}

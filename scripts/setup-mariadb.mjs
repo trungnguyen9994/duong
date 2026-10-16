@@ -9,6 +9,7 @@ import {
 import { randomBytes } from "node:crypto";
 import mysql from "mysql2/promise";
 import dotenv from "dotenv";
+dotenv.config({quiet:true});
 
 const name = "supabase_db_duong",
   container = process.env.DB_CONTAINER || "laradock-mariadb-1";
@@ -36,7 +37,7 @@ rootSql(
 );
 rootSql(
   `USE ${name};\n` +
-    readFileSync("database/migrations/002_template_guard.sql", "utf8"),
+    readFileSync("database/migrations/002_template_guard.sql", "utf8") + "\n" + readFileSync("database/migrations/003_usernames.sql", "utf8"),
 );
 mkdirSync("backups/before-mariadb", { recursive: true });
 if (existsSync(".env") && !existsSync("backups/before-mariadb/.env"))
@@ -49,7 +50,7 @@ if (
 const settings = {
   DB_CONTAINER: container,
   DB_HOST: "127.0.0.1",
-  DB_PORT: "3306",
+  DB_PORT: process.env.DB_PORT || existing.DB_PORT || "3306",
   DB_NAME: name,
   DB_USER: "edugame_app",
   DB_PASSWORD: password,
@@ -77,7 +78,7 @@ writeFileSync(
 );
 const connection = await mysql.createConnection({
   host: settings.DB_HOST,
-  port: 3306,
+  port: Number(settings.DB_PORT),
   user: settings.DB_USER,
   password,
   database: name,

@@ -22,7 +22,15 @@ const stage = z.object({
   multiplier: z.number().min(1).max(10).default(1),
   questions: z.array(mcqSchema).max(12),
 });
+export const gameThemeSchema = z.object({
+  font: z.enum(["Roboto", "Arial", "Tahoma", "Georgia"]),
+  text: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  question: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  answer: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  heading: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+});
 const common = {
+  appearance: gameThemeSchema.optional(),
   schemaVersion: z.literal(1),
   id: z.string().uuid(),
   metadata: z.object({
@@ -56,7 +64,7 @@ export const studioSpecSchema = z.discriminatedUnion("kind", [
     ...common,
     kind: z.literal("journey"),
     template: z.object({ type: z.literal("journey"), version: z.literal(1) }),
-    content: z.object({ stages: z.array(stage).length(4) }),
+    content: z.object({ stages: z.array(stage).min(1).max(12) }),
   }),
   z.object({
     ...common,
@@ -192,8 +200,15 @@ export function playableErrors(input: unknown): string[] {
   const s = parsed.data,
     errors: string[] = [];
   if (!s.metadata.title.trim()) errors.push("Cần tên trò chơi.");
-  if (s.settings.teams.some(name => !name.trim())) errors.push("Cần nhập tên cho từng học sinh hoặc tổ / đội.");
-  if (new Set(s.settings.teams.map(name => name.trim().normalize("NFC").toLocaleLowerCase("vi"))).size !== s.settings.teams.length)
+  if (s.settings.teams.some((name) => !name.trim()))
+    errors.push("Cần nhập tên cho từng học sinh hoặc tổ / đội.");
+  if (
+    new Set(
+      s.settings.teams.map((name) =>
+        name.trim().normalize("NFC").toLocaleLowerCase("vi"),
+      ),
+    ).size !== s.settings.teams.length
+  )
     errors.push("Tên người chơi bị trùng; thêm số thứ tự hoặc tên phân biệt.");
   if (
     s.kind === "journey" &&

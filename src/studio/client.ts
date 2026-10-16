@@ -56,7 +56,11 @@ export const backend = {
         },
       };
     },
-    signInWithPassword: async (input: { email: string; password: string }) => {
+    signInWithPassword: async (input: {
+      email: string;
+      password: string;
+      remember?: boolean;
+    }) => {
       const r = await authRequest("login", input);
       if (!r.error) emit("SIGNED_IN", r.data.session || null);
       return r;
@@ -86,7 +90,7 @@ export const backend = {
     },
     signOut: async () => {
       const r = await authRequest("logout", {});
-      emit("SIGNED_OUT", null);
+      if (!r.error) emit("SIGNED_OUT", null);
       return r;
     },
   },

@@ -1,3 +1,8 @@
+import { gameThemeStyle } from "./game-theme";
+import {
+  useVietnameseNarration,
+  NarrationFeedback,
+} from "./useVietnameseNarration";
 import { PlayerRoster } from "./PlayerRoster";
 import { useEffect, useState } from "react";
 import {
@@ -35,23 +40,15 @@ export function JourneyPlayer({
   );
   const q = questionsOf(spec)[state.index];
   usePlayRecord(spec.id, state.phase === "summary", state.scores, record);
-  useEffect(() => {
-    if (muted || !("speechSynthesis" in window)) return;
-    const text =
-      state.phase === "intro"
-        ? "Sẵn sàng khám phá chặng tiếp theo nhé!"
-        : state.phase === "correct"
-          ? "Chính xác! Làm tốt lắm!"
-          : state.phase === "wrong"
-            ? `Thử lại nhé! ${q?.hint || "Cùng suy nghĩ thêm nào."}`
-            : "";
-    if (text) {
-      const speech = new SpeechSynthesisUtterance(text);
-      speech.lang = "vi-VN";
-      window.speechSynthesis.speak(speech);
-    }
-    return () => window.speechSynthesis.cancel();
-  }, [state.phase, muted]);
+  const narrationText =
+    state.phase === "intro"
+      ? "Sẵn sàng khám phá chặng tiếp theo nhé!"
+      : state.phase === "correct"
+        ? "Chính xác! Làm tốt lắm!"
+        : state.phase === "wrong"
+          ? `Thử lại nhé! ${q?.hint || "Cùng suy nghĩ thêm nào."}`
+          : "";
+  const narration = useVietnameseNarration(narrationText, muted, paused);
   useEffect(() => {
     const key = (event: KeyboardEvent) => {
       if (!paused && state.phase === "question" && /^[1-4]$/.test(event.key))
@@ -66,7 +63,7 @@ export function JourneyPlayer({
     count += s.questions.length;
     return state.index < count;
   });
-  const stage = spec.content.stages[Math.max(0, stageIndex)];
+  const stage = spec.content.stages[Math.max(0, stageIndex) % 4];
   const bg = assets.find(
     (a) => a.id === (stage.backgroundId || spec.media.backgroundId),
   )?.url;
@@ -78,6 +75,7 @@ export function JourneyPlayer({
       className="eg-theater"
       aria-label="Chơi Hành trình"
       style={{
+        ...gameThemeStyle(spec),
         backgroundImage: `linear-gradient(#06335133,#06335133),url('${["/art/forest.png", "/art/mountain.png", "/art/cave.png", "/art/castle.png"][Math.max(0, stageIndex)]}')`,
       }}
     >
@@ -85,7 +83,7 @@ export function JourneyPlayer({
       <div className="eg-play-toolbar">
         <button onClick={onExit}>← Thoát</button>
         <button
-          aria-pressed={muted}
+          aria-pressed={!muted}
           onClick={() => {
             setMuted(!muted);
             window.speechSynthesis?.cancel();
@@ -112,7 +110,17 @@ export function JourneyPlayer({
             : "Không giới hạn"}
         </span>
       </div>
-      <PlayerRoster spec={spec} active={state.team} scores={state.scores} disabled={paused || state.attempts > 0 || !["intro", "question"].includes(state.phase)} onSelect={(team) => setState(s => ({...s, team}))} />
+      <PlayerRoster
+        spec={spec}
+        active={state.team}
+        scores={state.scores}
+        disabled={
+          paused ||
+          state.attempts > 0 ||
+          !["intro", "question"].includes(state.phase)
+        }
+        onSelect={(team) => setState((s) => ({ ...s, team }))}
+      />
       <div className="eg-play-panel">
         <h1>
           {state.phase === "summary"
@@ -189,8 +197,8 @@ export function JourneyPlayer({
             )}
             {!remaining && spec.settings.timerSeconds > 0 && (
               <p className="eg-feedback" role="status">
-                Hết giờ suy nghĩ! Giáo viên có thể gọi trả lời hoặc thảo
-                luận thêm.
+                Hết giờ suy nghĩ! Giáo viên có thể gọi trả lời hoặc thảo luận
+                thêm.
               </p>
             )}
           </>
@@ -211,6 +219,12 @@ export function JourneyPlayer({
             spec.media.alt ||
             "Bạn đồng hành"
           }
+        />
+        <NarrationFeedback
+          notice={narration.notice}
+          onReplay={narration.replay}
+          disabled={muted || paused || !narration.ready}
+          visible={!!narrationText}
         />
       </aside>
     </section>

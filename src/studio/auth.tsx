@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
     let serial = 0;
+    let authChanged = false;
     const update = async (value: Session | null) => {
       const request = ++serial;
       if (!active) return;
@@ -49,8 +50,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (active) setLoading(false);
     };
     if (configured) {
-      void backend.auth.getSession().then(({ data }) => update(data.session));
+      void backend.auth.getSession().then(({ data, error: sessionError }) => {
+        if (!active || authChanged) return;
+        if (sessionError) {
+          setError(
+            "Chưa kết nối được máy chủ để kiểm tra phiên. " +
+              sessionError.message,
+          );
+          setLoading(false);
+          return;
+        }
+        void update(data.session);
+      });
       const { data } = backend.auth.onAuthStateChange((_event, value) => {
+        authChanged = true;
         setTimeout(() => void update(value), 0);
       });
       return () => {
@@ -73,6 +86,13 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const auth = useAuth(),
     location = useLocation();
   if (auth.loading) return <p role="status">Đang kiểm tra tài khoản…</p>;
+  if (auth.error && !auth.session)
+    return (
+      <div className="eg-card" role="alert">
+        {auth.error}
+        <button onClick={() => window.location.reload()}>Thử lại</button>
+      </div>
+    );
   if (!auth.session)
     return (
       <Navigate

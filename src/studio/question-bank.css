@@ -1,0 +1,105 @@
+.eg-app .question-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding: 16px 0;
+}
+.eg-app .question-pagination-position {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.eg-app .question-pagination label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 500;
+}
+.eg-app .question-pagination select {
+  width: 68px;
+  min-width: 68px;
+  height: 44px;
+  margin: 0;
+  padding: 0 10px;
+}
+.eg-app .question-pagination button {
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+@media (max-width: 600px) {
+  .eg-app .question-pagination {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .eg-app .question-pagination label {
+    gap: 6px;
+  }
+  .eg-app .question-pagination-position {
+    gap: 6px;
+  }
+  .eg-app .question-pagination button {
+    padding: 0 10px;
+    font-size: 13px;
+  }
+  .eg-app .question-pagination select {
+    width: 60px;
+    min-width: 60px;
+  }
+  .eg-app .question-pagination label > span {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .eg-app .question-pagination {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 6px;
+  }
+  .eg-app .question-pagination button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+  .eg-app .question-pagination select {
+    width: 52px;
+    min-width: 52px;
+    padding: 0 4px;
+  }
+  .eg-app .question-pagination-position {
+    font-size: 12px;
+    gap: 4px;
+  }
+}
+.eg-app .question-bank-card .eg-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.eg-app .question-bank-card .eg-actions button {
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+  line-height: 20px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+@media (pointer: coarse) {
+  .eg-app .question-bank-card .eg-actions button {
+    min-height: 44px;
+  }
+}

@@ -1,3 +1,8 @@
+import { gameThemeStyle } from "./game-theme";
+import {
+  useVietnameseNarration,
+  NarrationFeedback,
+} from "./useVietnameseNarration";
 import { PlayerRoster } from "./PlayerRoster";
 import { useEffect, useState } from "react";
 import type { StudioSpec } from "../domain/studio-spec";
@@ -36,21 +41,13 @@ export function PicturePlayer({
     paused,
   );
   usePlayRecord(spec.id, state.phase === "summary", state.scores, record);
-  useEffect(() => {
-    if (muted || !("speechSynthesis" in window)) return;
-    const text =
-      state.phase === "correct"
-        ? "Chính xác! Cùng mở mảnh ghép nhé!"
-        : state.phase === "wrong"
-          ? "Mình cùng suy nghĩ và thử lại nhé!"
-          : "";
-    if (text) {
-      const speech = new SpeechSynthesisUtterance(text);
-      speech.lang = "vi-VN";
-      window.speechSynthesis.speak(speech);
-    }
-    return () => window.speechSynthesis.cancel();
-  }, [state.phase, muted]);
+  const narrationText =
+    state.phase === "correct"
+      ? "Chính xác! Cùng mở mảnh ghép nhé!"
+      : state.phase === "wrong"
+        ? "Mình cùng suy nghĩ và thử lại nhé!"
+        : "";
+  const narration = useVietnameseNarration(narrationText, muted, paused);
   if (spec.kind !== "picture_reveal") return null;
   const q = state.active !== null ? spec.content.questions[state.active] : null,
     image = assets.find((a) => a.id === spec.content.imageId)?.url;
@@ -58,6 +55,7 @@ export function PicturePlayer({
     <section
       className="eg-theater eg-picture-theater"
       style={{
+        ...gameThemeStyle(spec),
         backgroundImage: "url('/art/forest.png')",
       }}
     >
@@ -67,7 +65,7 @@ export function PicturePlayer({
       />
       <div className="eg-play-toolbar">
         <button onClick={onExit}>← Thoát</button>
-        <button onClick={() => setMuted(!muted)}>
+        <button aria-pressed={!muted} onClick={() => setMuted(!muted)}>
           {muted ? "Bật âm" : "Tắt âm"}
         </button>
         <button onClick={() => setPaused(!paused)}>
@@ -77,7 +75,17 @@ export function PicturePlayer({
           ⏱ {seconds}s
         </span>
       </div>
-      <PlayerRoster spec={spec} active={state.team} scores={state.scores} disabled={paused || state.attempts > 0 || !["board", "question"].includes(state.phase)} onSelect={(team) => setState(s => ({...s, team}))} />
+      <PlayerRoster
+        spec={spec}
+        active={state.team}
+        scores={state.scores}
+        disabled={
+          paused ||
+          state.attempts > 0 ||
+          !["board", "question"].includes(state.phase)
+        }
+        onSelect={(team) => setState((s) => ({ ...s, team }))}
+      />
       <main className="eg-play-panel">
         <h1>{spec.metadata.title}</h1>
         {state.phase === "summary" ? (
@@ -226,6 +234,12 @@ export function PicturePlayer({
             assets.find((a) => a.id === spec.media.characterId)?.alt_text ||
             "Bạn đồng hành"
           }
+        />
+        <NarrationFeedback
+          notice={narration.notice}
+          onReplay={narration.replay}
+          disabled={muted || paused || !narration.ready}
+          visible={!!narrationText}
         />
       </aside>
     </section>
