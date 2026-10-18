@@ -1,11 +1,17 @@
 import { z } from "zod";
+import { adventureConfig, isAdventure } from "./adventure-config";
 
 export const templateTypes = [
   "journey",
   "picture_reveal",
   "word_wheel",
+  "clever_frog",
+  "forest_rescue",
+  "boat_rescue",
+  "football",
 ] as const;
 export const mcqSchema = z.object({
+  label: z.string().max(40).optional(),
   id: z.string().uuid(),
   prompt: z.string().max(400),
   choices: z.array(z.string().max(180)).length(4),
@@ -60,6 +66,39 @@ const common = {
   }),
 };
 export const studioSpecSchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...common,
+    kind: z.literal("forest_rescue"),
+    template: z.object({
+      type: z.literal("forest_rescue"),
+      version: z.literal(1),
+    }),
+    content: z.object({ questions: z.array(mcqSchema).max(4) }),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("boat_rescue"),
+    template: z.object({
+      type: z.literal("boat_rescue"),
+      version: z.literal(1),
+    }),
+    content: z.object({ questions: z.array(mcqSchema).max(5) }),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("football"),
+    template: z.object({ type: z.literal("football"), version: z.literal(1) }),
+    content: z.object({ questions: z.array(mcqSchema).max(12) }),
+  }),
+  z.object({
+    ...common,
+    kind: z.literal("clever_frog"),
+    template: z.object({
+      type: z.literal("clever_frog"),
+      version: z.literal(1),
+    }),
+    content: z.object({ questions: z.array(mcqSchema).max(10) }),
+  }),
   z.object({
     ...common,
     kind: z.literal("journey"),
@@ -136,12 +175,64 @@ export function createStudioGame(type: TemplateType = "journey"): StudioSpec {
       alt: "",
     },
   };
+  if (isAdventure(type)) {
+    const config = adventureConfig[type];
+    return {
+      ...base,
+      kind: type,
+      template: { type, version: 1 },
+      metadata: { ...base.metadata, title: config.name },
+      content: {
+        questions: Array.from(
+          { length: type === "football" ? 4 : config.max },
+          (_, i) => ({
+            id: crypto.randomUUID(),
+            label: config.labels[i % config.labels.length],
+            prompt: "",
+            choices: ["", "", "", ""],
+            correct: 0,
+            hint: "",
+            explanation: "",
+          }),
+        ),
+      },
+    } as StudioSpec;
+  }
   if (type === "picture_reveal")
     return {
       ...base,
       kind: type,
       template: { type, version: 1 },
       content: { size: 6, answer: "", earlyGuess: true, questions: [] },
+    };
+  if (type === "clever_frog")
+    return {
+      ...base,
+      kind: type,
+      template: { type, version: 1 },
+      metadata: { ...base.metadata, title: "Ếch xanh mưu trí" },
+      content: {
+        questions: [
+          "Chăm Chỉ",
+          "Thật Thà",
+          "Cẩn Thận",
+          "Giản Dị",
+          "Vui Vẻ",
+          "Dũng Cảm",
+          "Kiên Trì",
+          "Ngăn Nắp",
+          "Tự Tin",
+          "Sạch Sẽ",
+        ].map((label) => ({
+          id: crypto.randomUUID(),
+          label,
+          prompt: "",
+          choices: ["", "", "", ""],
+          correct: 0,
+          hint: "",
+          explanation: "",
+        })),
+      },
     };
   if (type === "word_wheel")
     return {
@@ -174,7 +265,7 @@ export function createStudioGame(type: TemplateType = "journey"): StudioSpec {
 export function questionsOf(spec: StudioSpec): Mcq[] {
   return spec.kind === "journey"
     ? spec.content.stages.flatMap((s) => s.questions)
-    : spec.kind === "picture_reveal"
+    : spec.kind !== "word_wheel"
       ? spec.content.questions
       : [];
 }
@@ -225,16 +316,72 @@ export function playableErrors(input: unknown): string[] {
   if (s.kind === "word_wheel" && !s.content.phrase.trim())
     errors.push("Cần cụm từ bí mật.");
   const questions = questionsOf(s);
+  if (isAdventure(s.kind)) {
+    const config = adventureConfig[s.kind];
+    if (!questions.length) errors.push("Cần ít nhất một câu hỏi.");
+    if (
+      questions.some(
+        (q) =>
+          !q.prompt.trim() ||
+          (config.oral
+            ? !q.choices[q.correct].trim()
+            : q.correct >= config.choices ||
+              q.choices.slice(0, config.choices).some((c) => !c.trim())),
+      )
+    )
+      errors.push("Hoàn thiện câu hỏi và đáp án của từng thử thách.");
+  }
+  if (s.kind === "clever_frog" && !questions.length)
+    errors.push("Cần ít nhất một chú ếch và câu hỏi.");
   if (new Set(questions.map((q) => q.id)).size !== questions.length)
     errors.push("ID câu hỏi bị trùng.");
   if (
-    questions.some((q) => !q.prompt.trim() || q.choices.some((c) => !c.trim()))
+    !isAdventure(s.kind) &&
+    questions.some(
+      (q) =>
+        !q.prompt.trim() ||
+        (s.kind === "clever_frog"
+          ? !q.choices[q.correct].trim()
+          : q.choices.some((c) => !c.trim())),
+    )
   )
-    errors.push("Hoàn thiện đề bài và bốn lựa chọn.");
+    errors.push(
+      s.kind === "clever_frog"
+        ? "Hoàn thiện câu hỏi và đáp án của từng chú ếch."
+        : "Hoàn thiện đề bài và bốn lựa chọn.",
+    );
   return errors;
 }
 
 export const templateRegistry = Object.freeze({
+  forest_rescue: Object.freeze({
+    version: 1,
+    name: adventureConfig.forest_rescue.name,
+    image: adventureConfig.forest_rescue.background,
+    released: true,
+    pptx: "Chọn con vật, hiện đáp án và mở lồng giải cứu bằng animation.",
+  }),
+  boat_rescue: Object.freeze({
+    version: 1,
+    name: adventureConfig.boat_rescue.name,
+    image: "/art/boat_rescue/image4.png",
+    released: true,
+    pptx: "Chọn thuyền, trả lời 3 phương án; thuyền chuyển động về bờ.",
+  }),
+  football: Object.freeze({
+    version: 1,
+    name: adventureConfig.football.name,
+    image: adventureConfig.football.background,
+    released: true,
+    pptx: "Chọn 4 đáp án; bóng chuyển động vào cầu môn hoặc ra ngoài.",
+  }),
+  clever_frog: Object.freeze({
+    version: 1,
+    name: "Ếch xanh mưu trí",
+    image: "/art/frog/image1.png",
+    released: true,
+    pptx: "Chọn ếch tự do, bấm hiện đáp án rồi quay về ao; giáo viên ghi điểm.",
+  }),
   journey: Object.freeze({
     version: 1,
     name: "Hành trình tri thức",
@@ -247,7 +394,7 @@ export const templateRegistry = Object.freeze({
     name: "Mảnh ghép bí mật",
     image: "/art/castle.png",
     released: true,
-    pptx: "Mở ô theo thứ tự từ trái sang phải, trên xuống dưới.",
+    pptx: "Chọn mảnh tự do, hiện đáp án và quay về bảng; giáo viên ghi điểm.",
   }),
   word_wheel: Object.freeze({
     version: 1,

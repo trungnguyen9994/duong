@@ -9,6 +9,9 @@ export function QuestionEditor({
   onAdd,
   onRemove,
   onDuplicate,
+  oral = false,
+  choiceCount = 4,
+  labelName,
 }: {
   questions: Mcq[];
   active: string;
@@ -18,6 +21,9 @@ export function QuestionEditor({
   onAdd: () => void;
   onRemove: (i: number) => void;
   onDuplicate: (i: number) => void;
+  oral?: boolean;
+  choiceCount?: number;
+  labelName?: string;
 }) {
   const previous = useRef(questions.map((q) => q.id));
   useEffect(() => {
@@ -31,8 +37,9 @@ export function QuestionEditor({
   return (
     <div className="simple-question-editor">
       <p className="simple-field-help">
-        Nhập câu hỏi và 4 lựa chọn, rồi đánh dấu đáp án đúng. Gợi ý và giải
-        thích có thể bổ sung sau.
+        {oral
+          ? "Đặt tên chú ếch, nhập câu hỏi và đáp án. Học sinh trả lời miệng, giáo viên hiện đáp án và chấm điểm."
+          : `Nhập câu hỏi và ${choiceCount} lựa chọn, rồi đánh dấu đáp án đúng. Gợi ý và giải thích có thể bổ sung sau.`}
       </p>
       {!questions.length && (
         <div className="simple-question-empty">
@@ -42,7 +49,10 @@ export function QuestionEditor({
       )}
       {questions.map((q, i) => {
         const complete =
-          !!q.prompt.trim() && q.choices.every((c) => !!c.trim());
+          !!q.prompt.trim() &&
+          (oral
+            ? !!q.choices[q.correct].trim()
+            : q.choices.slice(0, choiceCount).every((c) => !!c.trim()));
         return (
           <section className="simple-question-card" key={q.id}>
             <button
@@ -71,6 +81,17 @@ export function QuestionEditor({
             </button>
             {selected === q.id && (
               <div className="simple-question-body" id={`edit-${q.id}`}>
+                {(oral || labelName) && (
+                  <label>
+                    {labelName || "Tên chú ếch"}
+                    <input
+                      maxLength={40}
+                      value={q.label || ""}
+                      placeholder={`Ếch ${i + 1}`}
+                      onChange={(e) => onUpdate(i, { label: e.target.value })}
+                    />
+                  </label>
+                )}
                 <label>
                   Đề bài
                   <textarea
@@ -81,42 +102,59 @@ export function QuestionEditor({
                     onChange={(e) => onUpdate(i, { prompt: e.target.value })}
                   />
                 </label>
-                <p className="simple-field-help">
-                  Chọn chấm tròn ở đáp án đúng.
-                </p>
-                <div className="simple-choice-list">
-                  {q.choices.map((choice, j) => (
-                    <div
-                      className={`simple-choice${q.correct === j ? " is-correct" : ""}`}
-                      key={j}
-                    >
-                      <label
-                        className="simple-correct-control"
-                        title={`Chọn ${"ABCD"[j]} là đáp án đúng`}
-                      >
-                        <input
-                          type="radio"
-                          name={`correct-${q.id}`}
-                          checked={q.correct === j}
-                          onChange={() => onUpdate(i, { correct: j })}
-                          aria-label={`Chọn ${"ABCD"[j]} là đáp án đúng`}
-                        />
-                        <span>{"ABCD"[j]}</span>
-                      </label>
-                      <input
-                        aria-label={`Đáp án ${"ABCD"[j]}`}
-                        maxLength={180}
-                        value={choice}
-                        placeholder={`Nhập đáp án ${"ABCD"[j]}`}
-                        onChange={(e) => {
-                          const choices = [...q.choices];
-                          choices[j] = e.target.value;
-                          onUpdate(i, { choices });
-                        }}
-                      />
+                {oral ? (
+                  <label>
+                    Đáp án
+                    <textarea
+                      maxLength={180}
+                      value={q.choices[q.correct]}
+                      onChange={(e) => {
+                        const choices = [...q.choices];
+                        choices[q.correct] = e.target.value;
+                        onUpdate(i, { choices });
+                      }}
+                    />
+                  </label>
+                ) : (
+                  <>
+                    <p className="simple-field-help">
+                      Chọn chấm tròn ở đáp án đúng.
+                    </p>
+                    <div className="simple-choice-list">
+                      {q.choices.slice(0, choiceCount).map((choice, j) => (
+                        <div
+                          className={`simple-choice${q.correct === j ? " is-correct" : ""}`}
+                          key={j}
+                        >
+                          <label
+                            className="simple-correct-control"
+                            title={`Chọn ${"ABCD"[j]} là đáp án đúng`}
+                          >
+                            <input
+                              type="radio"
+                              name={`correct-${q.id}`}
+                              checked={q.correct === j}
+                              onChange={() => onUpdate(i, { correct: j })}
+                              aria-label={`Chọn ${"ABCD"[j]} là đáp án đúng`}
+                            />
+                            <span>{"ABCD"[j]}</span>
+                          </label>
+                          <input
+                            aria-label={`Đáp án ${"ABCD"[j]}`}
+                            maxLength={180}
+                            value={choice}
+                            placeholder={`Nhập đáp án ${"ABCD"[j]}`}
+                            onChange={(e) => {
+                              const choices = [...q.choices];
+                              choices[j] = e.target.value;
+                              onUpdate(i, { choices });
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </>
+                )}
                 <details className="simple-optional">
                   <summary>
                     Thêm gợi ý và giải thích <span>Không bắt buộc</span>

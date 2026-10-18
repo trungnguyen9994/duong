@@ -1,4 +1,8 @@
 import { addPowerPointMotion } from "./pptx-motion";
+import { addPictureInteraction } from "./pptx-picture";
+import { adventureSlides, renderAdventurePptx } from "./pptx-adventure";
+import { isAdventure } from "../src/domain/adventure-config";
+import { hasReferenceTemplate, renderReferencePptx } from "./pptx-reference";
 import pptxgen from "pptxgenjs";
 import { readFile } from "node:fs/promises";
 import sharp from "sharp";
@@ -34,6 +38,8 @@ type Node = {
   imageId?: string;
   picture?: { size: number; opened: number; imageId: string };
   word?: { phrase: string; letters: string[] };
+  revealAnswer?: string;
+  frogs?: { label: string; index: number }[];
 };
 export function journeySlides(spec: StudioSpec): Node[] {
   if (spec.kind !== "journey") throw new Error("Chưa có adapter cho mẫu này.");
@@ -119,55 +125,43 @@ export function pictureSlides(spec: StudioSpec): Node[] {
     {
       id: "cover",
       title: spec.metadata.title,
-      text: "Mở lần lượt từng ô để khám phá bức tranh.\nBản PowerPoint mở từ trái sang phải, trên xuống dưới.\nGiáo viên ghi điểm và quản lý thời gian.",
+      text: "Chọn mảnh ghép bất kỳ để mở câu hỏi. Bấm Hiện đáp án để kiểm tra, rồi Quay về bảng.\nGiáo viên điều khiển việc mở mảnh, ghi điểm và thời gian trong Slide Show.",
       buttons: [{ text: "Bắt đầu", target: "board-0" }],
       scene: 0,
     },
   ];
-  for (let i = 0; i <= spec.content.size; i++) {
+  {
     nodes.push({
-      id: `board-${i}`,
-      title: `Đã mở ${i}/${spec.content.size} mảnh ghép`,
+      id: "board-0",
+      title: "Mảnh ghép bí mật",
       text: "",
       buttons: [
         {
-          text: i < spec.content.size ? `Câu hỏi ô ${i + 1}` : "Hiện đáp án",
-          target: i < spec.content.size ? `q-${i}` : "summary",
+          text: "Giải bức tranh",
+          target: "summary",
         },
       ],
       scene: 0,
       picture: {
         size: spec.content.size,
-        opened: i,
+        opened: 0,
         imageId: spec.content.imageId!,
       },
     });
-    if (i === spec.content.size) break;
+  }
+  for (let i = 0; i < spec.content.size; i++) {
     const q = spec.content.questions[i];
     nodes.push({
       id: `q-${i}`,
       title: `Mảnh ghép ${i + 1}`,
-      text: q.prompt,
-      buttons: q.choices.map((c, j) => ({
-        text: `${"ABCD"[j]}. ${c}`,
-        target: `${j === q.correct ? "correct" : "wrong"}-${i}`,
-      })),
+      text:
+        q.prompt +
+        "\n\n" +
+        q.choices.map((c, j) => `${"ABCD"[j]}. ${c}`).join("\n"),
+      buttons: [{ text: "Quay về bảng", target: "board-0" }],
+      revealAnswer: `Đáp án: ${"ABCD"[q.correct]}. ${q.choices[q.correct]}${q.explanation ? "\n" + q.explanation : ""}`,
       scene: 0,
       imageId: q.imageId,
-    });
-    nodes.push({
-      id: `correct-${i}`,
-      title: "Chính xác!",
-      text: q.explanation || "Cùng mở mảnh ghép tiếp theo.",
-      buttons: [{ text: "Mở mảnh ghép", target: `board-${i + 1}` }],
-      scene: 0,
-    });
-    nodes.push({
-      id: `wrong-${i}`,
-      title: "Thử lại nhé!",
-      text: q.hint || "Cùng suy nghĩ thêm nào.",
-      buttons: [{ text: "Thử lại", target: `q-${i}` }],
-      scene: 0,
     });
   }
   nodes.push({
@@ -229,12 +223,57 @@ export function wheelSlides(spec: StudioSpec): Node[] {
   });
   return nodes;
 }
+export function frogSlides(spec: StudioSpec): Node[] {
+  if (spec.kind !== "clever_frog") throw Error("Sai mẫu.");
+  const errors = playableErrors(spec);
+  if (errors.length) throw Error(errors.join(" "));
+  return [
+    {
+      id: "cover",
+      title: spec.metadata.title,
+      text: "Chọn một chú ếch để khám phá câu hỏi.\nHọc sinh trả lời miệng; giáo viên bấm Hiện đáp án rồi Quay về ao.\nGiáo viên quản lý điểm và thời gian.",
+      buttons: [{ text: "Vào ao ếch", target: "board-0" }],
+      scene: 0,
+    },
+    {
+      id: "board-0",
+      title: spec.metadata.title,
+      text: "",
+      buttons: [{ text: "Hoàn thành", target: "summary" }],
+      scene: 0,
+      frogs: spec.content.questions.map((q, index) => ({
+        label: q.label || `Ếch ${index + 1}`,
+        index,
+      })),
+    },
+    ...spec.content.questions.map((q, i): Node => ({
+      id: `q-${i}`,
+      title: q.label || `Ếch ${i + 1}`,
+      text: q.prompt,
+      revealAnswer: `Đáp án: ${q.choices[q.correct]}${q.explanation ? "\n" + q.explanation : ""}`,
+      imageId: q.imageId,
+      buttons: [{ text: "Quay về ao", target: "board-0" }],
+      scene: 0,
+    })),
+    {
+      id: "summary",
+      title: "Chúc mừng cả lớp!",
+      text: "Các chú ếch đã hoàn thành thử thách.\nCùng tổng kết điểm và khen ngợi cả lớp!",
+      buttons: [{ text: "Về trang đầu", target: "cover" }],
+      scene: 0,
+    },
+  ];
+}
 export const pptxAdapters = Object.freeze({
+  "forest_rescue@1": adventureSlides,
+  "boat_rescue@1": adventureSlides,
+  "football@1": adventureSlides,
+  "clever_frog@1": frogSlides,
   "journey@1": journeySlides,
   "picture_reveal@1": pictureSlides,
   "word_wheel@1": wheelSlides,
 });
-export function deckSlides(s: StudioSpec) {
+export function deckSlides(s: StudioSpec): Node[] {
   const adapter =
     pptxAdapters[
       `${s.template.type}@${s.template.version}` as keyof typeof pptxAdapters
@@ -245,22 +284,24 @@ export function deckSlides(s: StudioSpec) {
 export async function cropBackground(
   source: Buffer,
   media: StudioSpec["media"],
+  frame = { width: 1280, height: 720 },
 ): Promise<Buffer> {
   const rotated = await sharp(source).rotate().toBuffer(),
     meta = await sharp(rotated).metadata();
   const base =
     media.fit === "cover"
-      ? Math.max(1280 / meta.width!, 720 / meta.height!)
-      : Math.min(1280 / meta.width!, 720 / meta.height!);
+      ? Math.max(frame.width / meta.width!, frame.height / meta.height!)
+      : Math.min(frame.width / meta.width!, frame.height / meta.height!);
   const width = Math.max(1, Math.round(meta.width! * base * media.zoom)),
     height = Math.max(1, Math.round(meta.height! * base * media.zoom));
+  if(width*height>32000000)throw Error("Vùng phóng ảnh quá lớn. Hãy giảm zoom hoặc chọn ảnh gần tỷ lệ khung hơn.");
   let resized = await sharp(rotated).resize(width, height).toBuffer();
-  const left = Math.round(((1280 - width) * media.x) / 100),
-    top = Math.round(((720 - height) * media.y) / 100);
+  const left = Math.round(((frame.width - width) * media.x) / 100),
+    top = Math.round(((frame.height - height) * media.y) / 100);
   const cropLeft = Math.max(0, -left),
     cropTop = Math.max(0, -top),
-    cropWidth = Math.min(width - cropLeft, 1280),
-    cropHeight = Math.min(height - cropTop, 720);
+    cropWidth = Math.min(width - cropLeft, frame.width),
+    cropHeight = Math.min(height - cropTop, frame.height);
   resized = await sharp(resized)
     .extract({
       left: cropLeft,
@@ -271,8 +312,8 @@ export async function cropBackground(
     .toBuffer();
   return sharp({
     create: {
-      width: 1280,
-      height: 720,
+      width: frame.width,
+      height: frame.height,
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
@@ -287,6 +328,8 @@ export async function renderPptx(
   spec: StudioSpec,
   assets: Map<string, Buffer>,
 ): Promise<Buffer> {
+  if (hasReferenceTemplate(spec)) return renderReferencePptx(spec, assets);
+  if (isAdventure(spec.kind)) return renderAdventurePptx(spec, assets);
   const nodes = deckSlides(spec);
   if (nodes.length > 60)
     throw new Error(`Bài cần ${nodes.length} slide, vượt giới hạn 60.`);
@@ -300,6 +343,36 @@ export async function renderPptx(
     bodyFontFace: spec.appearance?.font || "Roboto",
   };
   const scenes = await defaultScenes();
+  const frogScene =
+    spec.kind === "clever_frog"
+      ? `image/jpeg;base64,${(
+          await sharp(
+            await readFile(
+              new URL("../public/art/frog/image1.png", import.meta.url),
+            ),
+          )
+            .resize(1280, 720, { fit: "cover" })
+            .jpeg({ quality: 82 })
+            .toBuffer()
+        ).toString("base64")}`
+      : undefined;
+  const frogImages =
+    spec.kind === "clever_frog"
+      ? await Promise.all(
+          [7, 8, 9, 10, 11, 12, 13, 14, 5, 6].map(async (n) => {
+            const buffer = await readFile(
+              new URL(`../public/art/frog/image${n}.png`, import.meta.url),
+            );
+            const meta = await sharp(buffer).metadata(),
+              scale = Math.min(1.5 / meta.width!, 1.25 / meta.height!);
+            return {
+              data: `image/png;base64,${(await sharp(buffer).resize(250, 220, { fit: "inside" }).png().toBuffer()).toString("base64")}`,
+              w: meta.width! * scale,
+              h: meta.height! * scale,
+            };
+          }),
+        )
+      : [];
   const custom = new Map<string, string>();
   for (const id of new Set(
     [
@@ -328,7 +401,7 @@ export async function renderPptx(
     ? assets.get(spec.media.characterId)
     : await readFile(
         new URL(
-          `../public/art/${spec.kind === "picture_reveal" ? "explorer-girl" : "explorer"}.png`,
+          `../public/art/${spec.kind === "clever_frog" ? "frog/image20" : spec.kind === "picture_reveal" ? "explorer-girl" : "explorer"}.png`,
           import.meta.url,
         ),
       );
@@ -352,7 +425,7 @@ export async function renderPptx(
     const slide = pptx.addSlide();
     slide.background = { color: "E9F5FF" };
     slide.addImage({
-      data: scenes[node.scene % scenes.length],
+      data: frogScene || scenes[node.scene % scenes.length],
       x: 0,
       y: 0,
       w: 13.333,
@@ -366,7 +439,9 @@ export async function renderPptx(
             : undefined) ||
             spec.media.backgroundId ||
             "",
-        ) || scenes[node.scene % scenes.length],
+        ) ||
+        frogScene ||
+        scenes[node.scene % scenes.length],
       x: 0,
       y: 0,
       w: 13.333,
@@ -402,17 +477,18 @@ export async function renderPptx(
         fit: "shrink",
       },
     );
-    slide.addShape(pptx.ShapeType.roundRect, {
-      x: 2.8,
-      y: 1.8,
-      w: 8.7,
-      h: node.word || node.picture ? 4.3 : 2.35,
-      fill: {
-        color: spec.appearance?.question.slice(1) || "FFF4DE",
-        transparency: 0,
-      },
-      line: { color: "C18D47", width: 3 },
-    });
+    if (!node.frogs)
+      slide.addShape(pptx.ShapeType.roundRect, {
+        x: 2.8,
+        y: 1.8,
+        w: 8.7,
+        h: node.word || node.picture || node.revealAnswer ? 4.3 : 2.35,
+        fill: {
+          color: spec.appearance?.question.slice(1) || "FFF4DE",
+          transparency: 0,
+        },
+        line: { color: "C18D47", width: 3 },
+      });
     slide.addText(node.title, {
       fill: { color: spec.appearance?.heading.slice(1) || "A2602C" },
       fontFace: spec.appearance?.font,
@@ -432,8 +508,16 @@ export async function renderPptx(
         x: 3.05,
         y: 2.05,
         w: 8.2,
-        h: node.word?.phrase ? 1 : node.buttons.length === 4 ? 1.4 : 2.5,
-        fontSize: 26,
+        h: node.revealAnswer
+          ? node.imageId
+            ? 1
+            : 2.6
+          : node.word?.phrase
+            ? 1
+            : node.buttons.length === 4
+              ? 1.4
+              : 2.5,
+        fontSize: node.revealAnswer ? 22 : 26,
         color: spec.appearance?.text.slice(1) || "223044",
         align: "center",
         valign: "middle",
@@ -454,11 +538,11 @@ export async function renderPptx(
             y: 3 + Math.floor(i / columns) * 0.55,
             w: cell - 0.05,
             h: 0.5,
-            fill: { color: /\p{L}/u.test(c) ? "E0F2FF" : "FFF4DE" },
+            fill: { color: spec.appearance?.question.slice(1) || (/\p{L}/u.test(c) ? "E0F2FF" : "FFF4DE") },
             line: { color: "77B7DF", transparency: /\p{L}/u.test(c) ? 0 : 100 },
             fontSize: 24,
             bold: true,
-            color: "144F89",
+            color: spec.appearance?.text.slice(1) || "144F89",
             align: "center",
             valign: "middle",
           },
@@ -489,13 +573,44 @@ export async function renderPptx(
           y: 1.7 + (Math.floor(tile / cols) * 3.5) / rows,
           w: 6.3 / cols,
           h: 3.5 / rows,
-          fill: { color: "F9CE7C" },
+          fill: { color: spec.appearance?.answer.slice(1) || "F9CE7C" },
           line: { color: "B88039", width: 2 },
           fontSize: 30,
-          color: "704517",
+          color: spec.appearance?.text.slice(1) || "704517",
           align: "center",
           valign: "middle",
+          objectName: `puzzle-tile-${tile}`,
+          hyperlink: { slide: ids.get(`q-${tile}`)! },
         });
+    }
+    if (node.frogs) {
+      node.frogs.forEach(({ label, index }) => {
+        const x = 2.9 + (index % 5) * 1.72,
+          y = 2.0 + Math.floor(index / 5) * 1.7;
+        const frog = frogImages[index];
+        slide.addImage({
+          ...frog,
+          x: x + (1.5 - frog.w) / 2,
+          y: y + (1.25 - frog.h) / 2,
+          objectName: `puzzle-tile-${index}`,
+          hyperlink: { slide: ids.get(`q-${index}`)! },
+        });
+        slide.addText(label, {
+          objectName: `frog-label-${index}`,
+          x,
+          y: y + 1.2,
+          w: 1.5,
+          h: 0.4,
+          fontSize: 15,
+          bold: true,
+          fontFace: spec.appearance?.font || "Roboto",
+          color: "195A2A",
+          fill: { color: "FFF9D6" },
+          align: "center",
+          fit: "shrink",
+          hyperlink: { slide: ids.get(`q-${index}`)! },
+        });
+      });
     }
     if (node.imageId) {
       const image = assets.get(node.imageId);
@@ -518,7 +633,11 @@ export async function renderPptx(
     node.buttons.forEach((button, i) => {
       const multiple = node.buttons.length === 4;
       const x = multiple ? 2.8 + (i % 2) * 4.5 : 4.3,
-        y = multiple ? 4.5 + Math.floor(i / 2) * 0.9 : 5.3,
+        y = multiple
+          ? 4.5 + Math.floor(i / 2) * 0.9
+          : node.revealAnswer
+            ? 6.05
+            : 5.3,
         w = multiple ? 4.2 : 4.7;
       const slideNumber = ids.get(button.target);
       if (!slideNumber) throw new Error("Liên kết slide không tồn tại.");
@@ -538,8 +657,37 @@ export async function renderPptx(
         valign: "middle",
         fit: "shrink",
         hyperlink: { slide: slideNumber },
+        objectName: node.revealAnswer ? "puzzle-return" : undefined,
       });
     });
+    if (node.revealAnswer) {
+      slide.addText("Hiện đáp án", {
+        objectName: "puzzle-answer-button",
+        x: 3.05,
+        y: 4.8,
+        w: 2.3,
+        h: 0.6,
+        shape: pptx.ShapeType.roundRect,
+        fill: { color: "FFD88A" },
+        color: "4B2D10",
+        fontSize: 18,
+        bold: true,
+        align: "center",
+      });
+      slide.addText(node.revealAnswer, {
+        objectName: "puzzle-answer",
+        x: 5.55,
+        y: 4.75,
+        w: 5.6,
+        h: 1.1,
+        fill: { color: "E0F4DD" },
+        color: "20552D",
+        fontSize: 18,
+        fontFace: spec.appearance?.font,
+        margin: 0.12,
+        fit: "shrink",
+      });
+    }
     slide.addText("EduGame Studio · Giáo viên quản lý điểm và thời gian", {
       x: 0.9,
       y: 6.7,
@@ -551,6 +699,7 @@ export async function renderPptx(
     });
     if (characterData)
       slide.addImage({
+        objectName: "game-character",
         data: characterData,
         x: 11.6 + (1.35 - characterWidth) / 2,
         y: 6 - characterHeight,
@@ -562,10 +711,18 @@ export async function renderPptx(
     outputType: "nodebuffer",
     compression: true,
   })) as Buffer;
-  const output = await addPowerPointMotion(
+  let output = await addPowerPointMotion(
     rawOutput,
     spec.settings.reducedMotion,
   );
+  if (spec.kind === "picture_reveal" || spec.kind === "clever_frog")
+    output = await addPictureInteraction(
+      output,
+      spec.kind === "clever_frog"
+        ? spec.content.questions.length
+        : spec.content.size,
+      spec.settings.reducedMotion,
+    );
   if (output.length > 50 * 1024 * 1024)
     throw new Error("File PowerPoint vượt 50 MB.");
   return output;

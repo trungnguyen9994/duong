@@ -155,6 +155,11 @@ export const rpc = (name: string, p: Row = {}) =>
           ).n,
         );
         if (kind === "upload") {
+          const today = await one(
+            "SELECT COUNT(*) AS n FROM jobs WHERE owner_id=? AND kind='upload' AND created_at>=UTC_DATE()",
+            [a.id],
+          );
+          if (Number(today.n) >= 200) throw Error("UPLOAD_DAILY_QUOTA");
           if (!p.p_bytes || p.p_bytes > 5242880) throw Error("FILE_SIZE");
           if (count >= a.upload_limit) throw Error("UPLOAD_CONCURRENCY");
           if ((await usage(a.id)) + p.p_bytes > a.storage_limit)

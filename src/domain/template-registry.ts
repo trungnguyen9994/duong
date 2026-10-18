@@ -7,7 +7,7 @@ const entries = studioSpecSchema.options;
 export function getTemplate(type: TemplateType, version: number) {
   if (version !== 1 || !Object.hasOwn(templateRegistry, type))
     throw new Error(`Không hỗ trợ template ${type}@${version}.`);
-  const index = type === "journey" ? 0 : type === "picture_reveal" ? 1 : 2;
+  const index = entries.findIndex((entry) => entry.shape.kind.value === type);
   return Object.freeze({
     ...templateRegistry[type],
     key: `${type}@${version}`,
@@ -30,7 +30,7 @@ export function getTemplate(type: TemplateType, version: number) {
       pptx: true,
       manualTimer: true,
       manualScoring: true,
-      linearReveal: type !== "journey",
+      linearReveal: type === "word_wheel",
       randomWheel: false,
     }),
   });

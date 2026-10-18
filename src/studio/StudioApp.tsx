@@ -96,8 +96,15 @@ function Library() {
   const [type, setType] = useState(""),
     [subject, setSubject] = useState(""),
     [grade, setGrade] = useState(""),
-    [query, setQuery] = useState(searchParams.get("q") || ""),
-    [pptx, setPptx] = useState(false);
+    [query, setQuery] = useState(searchParams.get("q") || "");
+  const [page, setPage] = useState(1);
+  useEffect(() => setPage(1), [type, subject, grade, query]);
+  const filteredTemplates = templateTypes.filter((t) =>
+    enabledTemplates.includes(t) && (!type || t === type) &&
+    templateRegistry[t].name.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi")));
+  const pages = Math.max(1, Math.ceil(filteredTemplates.length / 8));
+  const currentPage = Math.min(page, pages);
+  const pageTemplates = filteredTemplates.slice((currentPage - 1) * 8, currentPage * 8);
   return (
     <div className="eg-workspace">
       <aside className="eg-sidebar">
@@ -133,14 +140,6 @@ function Library() {
             ))}
           </select>
         </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={pptx}
-            onChange={(e) => setPptx(e.target.checked)}
-          />{" "}
-          Đã hỗ trợ xuất PPTX
-        </label>
       </aside>
       <main className="eg-main">
         <h1>Mẫu trò chơi</h1>
@@ -155,18 +154,8 @@ function Library() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="eg-grid">
-          {templateTypes
-            .filter((t) => enabledTemplates.includes(t))
-            .filter(
-              (t) =>
-                (!type || t === type) &&
-                templateRegistry[t].name
-                  .toLocaleLowerCase("vi")
-                  .includes(query.toLocaleLowerCase("vi")) &&
-                (!pptx || templateRegistry[t].released),
-            )
-            .map((t) => {
+        <div className="eg-grid eg-library-grid">
+          {pageTemplates.map((t) => {
               const template = templateRegistry[t];
               return (
                 <article className="eg-template eg-card" key={t}>
@@ -202,11 +191,13 @@ function Library() {
               );
             })}
         </div>
-        {pptx && !templateTypes.some((t) => templateRegistry[t].released) && (
-          <div className="eg-empty">
-            Các bản xuất V4.1 đang được hoàn thiện và kiểm thử.
-          </div>
-        )}
+        {!filteredTemplates.length && <p className="eg-empty">Không tìm thấy mẫu phù hợp.</p>}
+        {filteredTemplates.length > 0 && <nav className="eg-library-pagination" aria-label="Phân trang mẫu trò chơi">
+          <button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Trang trước</button>
+          <label>Trang <select aria-label="Chọn trang mẫu trò chơi" value={currentPage} onChange={e => setPage(Number(e.target.value))}>{Array.from({length: pages}, (_,i) => <option key={i} value={i+1}>{i+1}</option>)}</select> / {pages}</label>
+          <button disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Trang sau</button>
+          <span>{(currentPage - 1) * 8 + 1}–{Math.min(currentPage * 8, filteredTemplates.length)} / {filteredTemplates.length} mẫu</span>
+        </nav>}
       </main>
     </div>
   );

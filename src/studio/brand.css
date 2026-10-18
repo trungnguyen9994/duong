@@ -1,0 +1,29 @@
+/* Preserve the full school crest and its original proportions. */
+.eg-app .home-header .home-brand {
+  width: 250px;
+  height: 68px;
+  flex: 0 1 250px;
+  min-width: 0;
+  overflow: hidden;
+}
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .eg-app .home-header .home-brand {
+    width: 210px;
+    height: 58px;
+    flex-basis: 210px;
+  }
+}
+@media (max-width: 760px) {
+  .eg-app .home-header .home-brand {
+    width: min(240px, calc(100vw - 100px));
+    height: 52px;
+    flex: 0 1 240px;
+  }
+}

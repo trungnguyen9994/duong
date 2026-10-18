@@ -1,0 +1,1 @@
+Artwork extracted from the user-provided reference deck `TC Ếch xanh mưu trí.pptx` on 2026-10-16 for the requested Web and PowerPoint game. The original source file is preserved. Image 1 is the pond background; images 5–14 are selectable frogs; image 20 is the question host. Image 2 and 3 are reference lily pads. No promotional slide or contact information is imported.

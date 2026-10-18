@@ -1,0 +1,2 @@
+INSERT IGNORE INTO templates(type,name) VALUES ('forest_rescue','Giải cứu rừng xanh'),('boat_rescue','Đưa thuyền vào bờ tránh bão'),('football','Đá bóng tri thức');
+INSERT IGNORE INTO template_versions(template_type,version,released,config) VALUES ('forest_rescue',1,TRUE,'{"editor":"forest_rescue","pptx":"native-triggers","maxQuestions":4}'),('boat_rescue',1,TRUE,'{"editor":"boat_rescue","pptx":"native-motion-paths","maxQuestions":5}'),('football',1,TRUE,'{"editor":"football","pptx":"native-motion-paths","maxQuestions":12}');

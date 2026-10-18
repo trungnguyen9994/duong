@@ -1,5 +1,7 @@
 import { defaultQuestions } from "../src/data/default-questions";
+import { DEMO_FOREST_IMAGE } from "../src/domain/demo-assets";
 import express from "express";
+import { createRateLimiter, securityHeaders } from "./security";
 import cors from "cors";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
@@ -17,6 +19,13 @@ import { fileRouter } from "./storage";
 import { sql } from "./database";
 
 const app = express();
+app.disable("x-powered-by");
+// Set only to the known hop count of your reverse proxy, never blindly trust X-Forwarded-For.
+const proxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+if (Number.isInteger(proxyHops) && proxyHops > 0 && proxyHops <= 5)
+  app.set("trust proxy", proxyHops);
+app.use(securityHeaders);
+app.use("/api", createRateLimiter(300, 60000));
 app.use(
   cors({
     credentials: true,
@@ -26,7 +35,10 @@ app.use(
     ],
   }),
 );
-app.use(express.json({ limit: "1mb" }));
+const jsonBody = express.json({ limit: "1mb", inflate: false });
+app.use((req, res, next) =>
+  req.path === "/api/files/upload" ? next() : jsonBody(req, res, next),
+);
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (
@@ -150,6 +162,14 @@ app.use("/api", async (req, res, next) => {
     next(error);
   }
 });
+const accountWrites = createRateLimiter(80, 60000, (req) =>
+  String(req.res?.locals.profile?.id || req.ip),
+);
+app.use("/api", (req, res, next) =>
+  ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)
+    ? accountWrites(req, res, next)
+    : next(),
+);
 const owner = (res: express.Response) => res.locals.profile.id as string;
 app.get("/api/me", (_req, res) => res.json(res.locals.profile));
 app.get("/api/dashboard", async (_req, res) => {
@@ -269,6 +289,7 @@ app.post("/api/uploads/request", async (req, res) => {
     path: `${owner(res)}/${id}`,
     name: input.name,
     mime: input.mime,
+    bytes: input.bytes,
     ready: false,
   };
   const job = checked(
@@ -289,7 +310,12 @@ app.post("/api/uploads/request", async (req, res) => {
   const signed = checked(
     await admin.storage
       .from("uploads")
-      .createSignedUploadUrl(job.payload.path, { upsert: false }),
+      .createSignedUploadUrl(job.payload.path, {
+        bytes: job.payload.bytes,
+        mime: job.payload.mime,
+        jobId: job.id,
+        ownerId: owner(res),
+      }),
   );
   res.json({
     jobId: job.id,
@@ -480,6 +506,7 @@ app.post("/api/exports", async (req, res) => {
   if (deckSlides(spec).length > 60)
     return res.status(400).json({ error: "Vượt giới hạn 60 slide." });
   for (const id of assetIds(spec)) {
+    if (req.body.demo === true && id === DEMO_FOREST_IMAGE) continue;
     const asset = checked(
       await admin
         .from("assets")
@@ -501,7 +528,13 @@ app.post("/api/exports", async (req, res) => {
         p_owner: owner(res),
         p_kind: "export",
         p_key: key,
-        p_payload: { spec, assetIds: assetIds(spec) },
+        p_payload: {
+          spec,
+          assetIds: assetIds(spec).filter(
+            (id) => !(req.body.demo === true && id === DEMO_FOREST_IMAGE),
+          ),
+          demo: req.body.demo === true,
+        },
       }),
     ),
   );
@@ -638,7 +671,15 @@ app.get("/api/admin/:section", async (req, res) => {
 app.put("/api/admin/templates/:id", async (req, res) => {
   permission(res, "templates");
   const type = z
-      .enum(["journey", "picture_reveal", "word_wheel"])
+      .enum([
+        "journey",
+        "picture_reveal",
+        "word_wheel",
+        "clever_frog",
+        "forest_rescue",
+        "boat_rescue",
+        "football",
+      ])
       .parse(req.params.id),
     enabled = z.boolean().parse(req.body.enabled);
   checked(await admin.from("templates").update({ enabled }).eq("type", type));
@@ -856,18 +897,38 @@ app.use(
     _next: express.NextFunction,
   ) => {
     const message = error instanceof Error ? error.message : "Có lỗi xảy ra.";
-    console.error(message);
+    const httpStatus = Number((error as { status?: number })?.status);
+    const known = /^[A-Z][A-Z0-9_]{2,80}$/.test(message);
+    console.error(
+      "API request failed:",
+      known ? message : (error as { code?: string })?.code || "REQUEST_ERROR",
+    );
     res
       .status(
-        error instanceof z.ZodError
-          ? 400
-          : /FORBIDDEN|SUPER_ADMIN_REQUIRED/.test(message)
-            ? 403
-            : /REVISION_CONFLICT|ASSET_IN_USE/.test(message)
-              ? 409
-              : 422,
+        [400, 413, 415].includes(httpStatus)
+          ? httpStatus
+          : error instanceof z.ZodError
+            ? 400
+            : /FORBIDDEN|SUPER_ADMIN_REQUIRED/.test(message)
+              ? 403
+              : /REVISION_CONFLICT|ASSET_IN_USE/.test(message)
+                ? 409
+                : /QUOTA|CONCURRENCY/.test(message)
+                  ? 429
+                  : 422,
       )
-      .json({ error: message });
+      .json({
+        error:
+          httpStatus === 413
+            ? "Dữ liệu gửi lên vượt giới hạn."
+            : httpStatus === 415
+              ? "Định dạng dữ liệu không được hỗ trợ."
+              : error instanceof z.ZodError || httpStatus === 400
+                ? "Thông tin gửi lên không hợp lệ."
+                : known
+                  ? message
+                  : "Không thể thực hiện yêu cầu. Vui lòng thử lại sau.",
+      });
   },
 );
 export default app;

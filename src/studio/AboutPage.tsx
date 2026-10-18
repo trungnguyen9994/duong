@@ -1,7 +1,36 @@
 import { Link } from "react-router-dom";
+import { templateRegistry, type TemplateType } from "../domain/studio-spec";
 import "./about-page.css";
 
 const templates = [
+  {
+    type: "forest_rescue",
+    tag: "Trả lời câu hỏi, giải cứu con vật",
+    description: "Khám phá rừng xanh, chọn con vật và vượt qua câu hỏi để mở lồng giải cứu. Giáo viên điều hành và cùng cả lớp kiểm tra đáp án.",
+    example: "Gợi ý sử dụng: tìm hiểu động vật, giáo dục bảo vệ thiên nhiên, ôn tập kiến thức.",
+  },
+  {
+    type: "boat_rescue",
+    tag: "Đưa thuyền vào bờ tránh bão",
+    description: "Chọn thuyền và trả lời câu hỏi với ba phương án. Mỗi câu trả lời đúng giúp một chiếc thuyền trở về bờ an toàn.",
+    example: "Gợi ý sử dụng: luyện tính nhẩm, củng cố kiến thức, thi đua giữa các tổ.",
+  },
+  {
+    type: "football",
+    tag: "Chọn đáp án, ghi bàn thắng",
+    description: "Thử sức với những cú sút qua câu hỏi có bốn phương án. Chọn đáp án đúng để ghi bàn và theo dõi kết quả của từng lượt chơi.",
+    example: "Gợi ý sử dụng: luyện từ vựng Tiếng Anh, kiểm tra nhanh, ôn tập cuối bài.",
+  },
+  {
+    type: "clever_frog",
+    image: "frog/image1",
+    name: "Ếch xanh mưu trí",
+    tag: "Chọn ếch, khám phá câu hỏi",
+    description:
+      "Chọn chú ếch bất kỳ trên ao, trả lời miệng rồi cùng hiện đáp án. Giáo viên chấm điểm và gọi học sinh tiếp theo.",
+    example:
+      "Gợi ý sử dụng: hỏi đáp đầu giờ, luyện tính nhẩm, ôn tập cuối bài.",
+  },
   {
     type: "journey",
     image: "forest",
@@ -31,7 +60,7 @@ const templates = [
     example:
       "Gợi ý sử dụng: luyện từ, ôn chủ đề Tiếng Việt, tìm từ khóa bài học.",
   },
-];
+] satisfies { type: TemplateType; tag: string; description: string; example: string; image?: string; name?: string }[];
 const benefits = [
   [
     "01",
@@ -120,8 +149,8 @@ export function AboutPage() {
           <span>Nội dung linh hoạt theo tiết dạy</span>
         </p>
         <p>
-          <strong>3 mẫu trò chơi</strong>
-          <span>Ba cách tổ chức hoạt động</span>
+          <strong>{templates.length} mẫu trò chơi</strong>
+          <span>Nhiều cách tổ chức hoạt động</span>
         </p>
         <p>
           <strong>Cá nhân hoặc tổ</strong>
@@ -159,7 +188,7 @@ export function AboutPage() {
       >
         <div className="about-section-heading">
           <p className="about-eyebrow">HỌC QUA NHỮNG TRẢI NGHIỆM</p>
-          <h2 id="about-templates">Ba cách chơi, nhiều ý tưởng dạy học</h2>
+          <h2 id="about-templates">{templates.length} mẫu trò chơi, nhiều ý tưởng dạy học</h2>
           <p>
             Dùng cho Toán, Tiếng Việt, Tự nhiên và Xã hội hoặc môn học khác. Câu
             hỏi và hình ảnh do giáo viên lựa chọn.
@@ -168,15 +197,15 @@ export function AboutPage() {
         <div className="about-template-grid">
           {templates.map((template) => (
             <article key={template.type}>
-              <img src={`/art/${template.image}.png`} alt="" loading="lazy" />
+              <img src={templateRegistry[template.type].image} alt="" loading="lazy" />
               <div className="about-template-copy">
                 <span>{template.tag}</span>
-                <h3>{template.name}</h3>
+                <h3>{templateRegistry[template.type].name}</h3>
                 <p>{template.description}</p>
                 <p className="about-example">{template.example}</p>
                 <Link
                   to={`/demo/${template.type}`}
-                  aria-label={`Chơi thử ${template.name}`}
+                  aria-label={`Chơi thử ${templateRegistry[template.type].name}`}
                 >
                   Chơi thử mẫu <span aria-hidden="true">→</span>
                 </Link>
@@ -257,6 +286,18 @@ export function AboutPage() {
               khi quản trị viên chấp thuận.
             </p>
           </details>
+        </div>
+      </section>
+
+      <section className="about-author" id="author" aria-labelledby="about-author-title">
+        <img src="/art/author-thuy-duong.png" alt="Đỗ Thị Thùy Dương" loading="lazy" />
+        <div>
+          <p className="about-eyebrow">TÁC GIẢ</p>
+          <h2 id="about-author-title">Đỗ Thị Thùy Dương</h2>
+          <dl>
+            <div><dt>Ngày sinh</dt><dd><time dateTime="1994-09-29">29/09/1994</time></dd></div>
+            <div><dt>Đơn vị công tác</dt><dd>Trường Tiểu Học Thạch Bàn (Phân Hiệu)</dd></div>
+          </dl>
         </div>
       </section>
 

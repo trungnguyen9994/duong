@@ -22,6 +22,7 @@ export async function cropImage(source: Buffer, crop: Crop) {
       : Math.min(w / meta.width!, h / meta.height!);
   const width = Math.max(1, Math.round(meta.width! * base * crop.zoom)),
     height = Math.max(1, Math.round(meta.height! * base * crop.zoom));
+  if(width*height>32000000)throw Error("Vùng phóng ảnh quá lớn. Hãy giảm zoom hoặc chọn ảnh gần tỷ lệ khung hơn.");
   const left = Math.round(((w - width) * crop.x) / 100),
     top = Math.round(((h - height) * crop.y) / 100),
     cx = Math.max(0, -left),

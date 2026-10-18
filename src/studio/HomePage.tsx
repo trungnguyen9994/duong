@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import "./mobile-menu.css";
+import "./brand.css";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import { backend } from "./client";
@@ -182,10 +183,9 @@ export function Header() {
         <Link
           className="eg-brand home-brand"
           to="/"
-          aria-label="EduGame Studio – Trang chủ"
+          aria-label="duonglearning.vn – Trang chủ"
         >
-          <Flower />
-          <span>EduGame Studio</span>
+          <img className="brand-logo" src="/art/thach-ban-logo.png" alt="Trường Tiểu học Thạch Bàn" width="658" height="686" />
         </Link>
         <nav aria-label="Điều hướng chính">
           <NavLink to="/" end>
@@ -259,7 +259,7 @@ export function Header() {
         }}
       >
         <div className="mobile-menu-heading">
-          <strong id="mobile-menu-title">EduGame Studio</strong>
+          <strong id="mobile-menu-title">duonglearning.vn</strong>
           <button aria-label="Đóng menu" onClick={closeMenu}>
             ✕
           </button>

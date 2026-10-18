@@ -1,7 +1,64 @@
-.eg-theater[style*="--game-font"], .builder-preview-stage[style*="--game-font"] { font-family:var(--game-font, "Roboto", sans-serif); }
-.eg-theater[style*="--game-font"] :is(button,input,select), .builder-preview-stage[style*="--game-font"] :is(button,input,select) { font-family:inherit; }
-.eg-theater[style*="--game-font"] .eg-question, .builder-preview-stage[style*="--game-font"] .preview-question, .eg-theater[style*="--game-font"] .eg-word-board > span:not(.space), .builder-preview-stage[style*="--game-font"] .preview-word > span:not(.space) { background:var(--game-question); color:var(--game-text); }
-.eg-theater[style*="--game-font"] .eg-answers button, .builder-preview-stage[style*="--game-font"] .preview-answers > *, .eg-theater[style*="--game-font"] .eg-letter-keys button:not(:disabled) { background:var(--game-answer); color:var(--game-text); }
-.eg-theater[style*="--game-font"] .eg-play-panel h1, .builder-preview-stage[style*="--game-font"] .preview-stage-heading { background:var(--game-heading); color:var(--game-text); }
-.game-theme-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin:16px 0;}
-.eg-app .game-theme-fields input[type=color] {width:100%;height:44px;padding:4px;cursor:pointer;}
+.eg-theater[style*="--game-font"],
+.builder-preview-stage[style*="--game-font"] {
+  font-family: var(--game-font, "Roboto", sans-serif);
+}
+.eg-theater[style*="--game-font"] :is(button, input, select),
+.builder-preview-stage[style*="--game-font"] :is(button, input, select) {
+  font-family: inherit;
+}
+.eg-theater[style*="--game-font"] .eg-question,
+.builder-preview-stage[style*="--game-font"] .preview-question,
+.eg-theater[style*="--game-font"] .eg-word-board > span:not(.space),
+.builder-preview-stage[style*="--game-font"] .preview-word > span:not(.space) {
+  background: var(--game-question);
+  color: var(--game-text);
+}
+.eg-theater[style*="--game-font"] .eg-answers button,
+.builder-preview-stage[style*="--game-font"] .preview-answers > *,
+.eg-theater[style*="--game-font"] .eg-letter-keys button:not(:disabled) {
+  background: var(--game-answer);
+  color: var(--game-text);
+}
+.eg-theater[style*="--game-font"] .eg-play-panel h1,
+.builder-preview-stage[style*="--game-font"] .preview-stage-heading {
+  background: var(--game-heading);
+  color: var(--game-text);
+}
+.game-theme-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.eg-app .game-theme-fields input[type="color"] {
+  width: 100%;
+  height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+/* Apply the same semantic theme to the oral and adventure templates. */
+.eg-frog-theater[style*="--game-font"] .frog-main h1,
+.adventure-player[style*="--game-font"] .adventure-main h1 {
+  background: var(--game-heading);
+  color: var(--game-text);
+}
+.eg-frog-theater[style*="--game-font"] .frog-answer,
+.eg-frog-theater[style*="--game-font"] .frog-choice strong,
+.adventure-player[style*="--game-font"] .adventure-object strong,
+.adventure-player[style*="--game-font"] .adventure-answer {
+  background: var(--game-answer);
+  color: var(--game-text);
+}
+.builder-preview-stage[style*="--game-font"] .preview-clue {
+  background: var(--game-question);
+  color: var(--game-text);
+}
+.adventure-player[style*="--game-font"] :is(button, input, select) {
+  font-family: inherit;
+}
+.preview-content-image {
+  max-width: 35%;
+  max-height: 8cqw;
+  object-fit: contain;
+}

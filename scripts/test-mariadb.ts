@@ -232,8 +232,8 @@ try {
       }),
     ),
   );
-  assert.deepEqual(reserved.map((r) => r.status()).sort(), [200, 422]);
-  const denied = reserved.find((r) => r.status() === 422)!;
+  assert.deepEqual(reserved.map((r) => r.status()).sort(), [200, 429]);
+  const denied = reserved.find((r) => r.status() === 429)!;
   assert.match((await denied.json()).error, /UPLOAD_CONCURRENCY/);
   console.log(
     "PASS: email verification, cookie sessions, owner isolation, roles, revisions, upload, private files, worker export, idempotency, moderation, revoke, suspended accounts, logout.",

@@ -1,4 +1,5 @@
-import { defaultGameTheme } from "./game-theme";
+import { defaultGameTheme, lowContrastTheme } from "./game-theme";
+import { characterLabel } from "../domain/media-capabilities";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -27,6 +28,7 @@ import { useCatalog } from "./useCatalog";
 import { BuilderPreview } from "./BuilderPreview";
 import { QuestionEditor } from "./QuestionEditor";
 import "./simple-builder.css";
+import { adventureConfig, isAdventure } from "../domain/adventure-config";
 
 const steps = ["Bắt đầu", "Câu hỏi", "Tùy chỉnh", "Hoàn tất"];
 const stepHelp = [
@@ -62,6 +64,10 @@ export function Builder() {
     savedHash = useRef(""),
     latest = useRef(spec);
   latest.current = spec;
+  useEffect(() => {
+    if (spec && mediaTarget === "characterId" && !characterLabel(spec.kind))
+      setMediaTarget("backgroundId");
+  }, [spec?.kind, mediaTarget]);
   const [playing, setPlaying] = useState(false),
     [exporting, setExporting] = useState(false);
   const [legacyDrafts, setLegacyDrafts] = useState<Draft[]>([]);
@@ -273,7 +279,7 @@ export function Builder() {
       const q =
         s.kind === "journey"
           ? s.content.stages[stage].questions
-          : s.kind === "picture_reveal"
+          : s.kind !== "word_wheel"
             ? s.content.questions
             : [];
       q[index] = { ...q[index], ...patch };
@@ -325,7 +331,7 @@ export function Builder() {
   const currentQuestions =
     spec.kind === "journey"
       ? spec.content.stages[stage].questions
-      : spec.kind === "picture_reveal"
+      : spec.kind !== "word_wheel"
         ? spec.content.questions
         : [];
   const errors = playableErrors(spec);
@@ -768,6 +774,16 @@ export function Builder() {
                 ) : (
                   <>
                     <QuestionEditor
+                      oral={
+                        spec.kind === "clever_frog" ||
+                        spec.kind === "forest_rescue"
+                      }
+                      choiceCount={spec.kind === "boat_rescue" ? 3 : 4}
+                      labelName={
+                        isAdventure(spec.kind)
+                          ? "Tên nhân vật / thử thách"
+                          : undefined
+                      }
                       active={activeQuestion}
                       onActive={setActiveQuestion}
                       questions={currentQuestions}
@@ -776,14 +792,16 @@ export function Builder() {
                           ? 12
                           : spec.kind === "picture_reveal"
                             ? spec.content.size
-                            : 0
+                            : spec.kind === "clever_frog"
+                              ? 10
+                              : adventureConfig[spec.kind].max
                       }
                       onUpdate={updateQuestion}
                       onAdd={() =>
                         edit((s) => {
                           (s.kind === "journey"
                             ? s.content.stages[stage].questions
-                            : s.kind === "picture_reveal"
+                            : s.kind !== "word_wheel"
                               ? s.content.questions
                               : []
                           ).push(newQuestion());
@@ -793,7 +811,7 @@ export function Builder() {
                         edit((s) => {
                           (s.kind === "journey"
                             ? s.content.stages[stage].questions
-                            : s.kind === "picture_reveal"
+                            : s.kind !== "word_wheel"
                               ? s.content.questions
                               : []
                           ).splice(i, 1);
@@ -804,15 +822,19 @@ export function Builder() {
                           const qs =
                             s.kind === "journey"
                               ? s.content.stages[stage].questions
-                              : s.kind === "picture_reveal"
+                              : s.kind !== "word_wheel"
                                 ? s.content.questions
                                 : [];
                           if (
                             qs.length <
                             (s.kind === "journey"
                               ? 12
-                              : s.kind === "picture_reveal"
-                                ? s.content.size
+                              : s.kind !== "word_wheel"
+                                ? s.kind === "picture_reveal"
+                                  ? s.content.size
+                                  : s.kind === "clever_frog"
+                                    ? 10
+                                    : adventureConfig[s.kind].max
                                 : 0)
                           )
                             qs.splice(i + 1, 0, {
@@ -848,15 +870,19 @@ export function Builder() {
                       const qs =
                         s.kind === "journey"
                           ? s.content.stages[stage].questions
-                          : s.kind === "picture_reveal"
+                          : s.kind !== "word_wheel"
                             ? s.content.questions
                             : [];
                       if (
                         qs.length <
                         (s.kind === "journey"
                           ? 12
-                          : s.kind === "picture_reveal"
-                            ? s.content.size
+                          : s.kind !== "word_wheel"
+                            ? s.kind === "picture_reveal"
+                              ? s.content.size
+                              : s.kind === "clever_frog"
+                                ? 10
+                                : adventureConfig[s.kind].max
                             : 0)
                       )
                         qs.push(q);
@@ -909,6 +935,7 @@ export function Builder() {
                   <p>
                     Áp dụng cho tiêu đề, câu hỏi và đáp án. Chọn màu chữ tương
                     phản với nền để học sinh dễ đọc.
+                    Chữ nằm sẵn trong ảnh gốc không thay đổi bằng các lựa chọn này.
                   </p>
                   <div className="game-theme-fields">
                     <label>
@@ -966,6 +993,12 @@ export function Builder() {
                   >
                     Khôi phục giao diện mặc định
                   </button>
+                  {lowContrastTheme(spec) && (
+                    <p role="status">
+                      Màu chữ và một số màu nền đang gần nhau, có thể khó đọc.
+                      Nên chọn chữ đậm trên nền sáng hoặc chữ sáng trên nền đậm.
+                    </p>
+                  )}
                 </details>
                 <p className="simple-default-rules">
                   Đang dùng:{" "}
@@ -1059,6 +1092,19 @@ export function Builder() {
                   Bài đã có sẵn nền và nhân vật. Mở mục này khi muốn dùng ảnh
                   riêng.
                 </p>
+                {(spec.kind === "forest_rescue" ||
+                  spec.kind === "boat_rescue") && (
+                  <p className="simple-field-help">
+                    Có thể thay nền và ảnh câu hỏi. Con vật, lồng, thuyền và các
+                    đối tượng gắn hiệu ứng giữ theo mẫu.
+                  </p>
+                )}
+                {spec.kind === "football" && (
+                  <p className="simple-field-help">
+                    Có thể thay nền, thủ môn và ảnh câu hỏi. Quả bóng giữ theo
+                    mẫu để bảo toàn hiệu ứng sút bóng.
+                  </p>
+                )}
                 <label>
                   Vị trí sử dụng
                   <select
@@ -1068,7 +1114,11 @@ export function Builder() {
                     }
                   >
                     <option value="backgroundId">Hình nền</option>
-                    <option value="characterId">Nhân vật</option>
+                    {characterLabel(spec.kind) && (
+                      <option value="characterId">
+                        {characterLabel(spec.kind)}
+                      </option>
+                    )}
                     {spec.kind === "picture_reveal" && (
                       <option value="imageId">Ảnh bí mật</option>
                     )}
@@ -1297,11 +1347,16 @@ export function Builder() {
                   </button>
                 </div>
                 <p>
-                  {spec.kind === "journey"
-                    ? "PowerPoint dùng nút liên kết để chọn đáp án. Điểm và đồng hồ do giáo viên điều khiển."
-                    : spec.kind === "picture_reveal"
-                      ? "PowerPoint mở ô cố định từ trái sang phải, trên xuống dưới. Giáo viên điều hành đoán tranh và ghi điểm."
-                      : "PowerPoint mở chữ theo kịch bản, giáo viên quay và ghi điểm thủ công."}
+                  {isAdventure(spec.kind)
+                    ? adventureConfig[spec.kind].instructions +
+                      " PowerPoint: giáo viên quản lý điểm và thời gian."
+                    : spec.kind === "journey"
+                      ? "PowerPoint dùng nút liên kết để chọn đáp án. Điểm và đồng hồ do giáo viên điều khiển."
+                      : spec.kind === "clever_frog"
+                        ? "Chọn ếch bất kỳ, bấm hiện đáp án và quay về ao. Giáo viên điều hành trả lời miệng và ghi điểm."
+                        : spec.kind === "picture_reveal"
+                          ? "Chọn mảnh ghép bất kỳ, hiện đáp án rồi quay lại bảng. Giáo viên điều hành và ghi điểm."
+                          : "PowerPoint mở chữ theo kịch bản, giáo viên quay và ghi điểm thủ công."}
                 </p>
                 <div className="eg-actions builder-export-actions">
                   <button

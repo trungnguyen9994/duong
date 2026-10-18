@@ -205,7 +205,7 @@ describe("V4.1 contract", () => {
     expect(xml).toContain('cx="1234440" cy="617220"');
   }, 30000);
   it.each([4, 6, 9] as const)(
-    "picture grid %i supports only correct reveal and linear PPTX",
+    "picture grid %i exports arbitrary tile selection and returning question shows",
     async (size) => {
       const s = createStudioGame("picture_reveal");
       if (s.kind !== "picture_reveal") throw Error();
@@ -234,7 +234,7 @@ describe("V4.1 contract", () => {
       expect(selectTile(s, { ...state, phase: "board" }, 2).active).toBe(2);
       const nodes = pictureSlides(s),
         ids = new Set(nodes.map((n) => n.id));
-      expect(nodes.length).toBe(size * 4 + 3);
+      expect(nodes.length).toBe(size + 3);
       for (const node of nodes)
         for (const button of node.buttons)
           expect(ids.has(button.target)).toBe(true);
@@ -249,10 +249,59 @@ describe("V4.1 contract", () => {
         Object.keys(zip.files).filter((p) =>
           /^ppt\/slides\/slide\d+\.xml$/.test(p),
         ),
-      ).toHaveLength(nodes.length);
+      ).toHaveLength(size === 6 ? nodes.length - 1 : nodes.length);
       const xml = await zip.file("ppt/slides/slide2.xml")!.async("string");
       expect(xml).toContain("hlinkClick");
+      if (size === 6) {
+        expect(xml).toContain("<p:animScale>");
+        expect(xml).toContain('presetClass="exit"');
+        const question = await zip.file("ppt/slides/slide3.xml")!.async("string");
+        expect(question).toContain("Đáp án: Nước");
+        expect(question).toContain('presetClass="entr"');
+        return;
+      }
       expect(xml).toContain("<a:t>1</a:t>");
+      expect(xml).toContain('nodeType="interactiveSeq"');
+      expect(xml).toContain("ppaction://customshow?id=0&amp;return=true");
+      expect(xml).toContain('val="hidden"');
+      const presentation = await zip
+        .file("ppt/presentation.xml")!
+        .async("string");
+      expect([...presentation.matchAll(/<p:custShow /g)]).toHaveLength(size);
+      const question = await zip.file("ppt/slides/slide3.xml")!.async("string");
+      expect(question).toContain("ppaction://hlinkshowjump?jump=endshow");
+      expect(question).toContain("puzzle-answer-button");
+      expect(question).toContain("Đáp án: A. Nước");
+      expect(question).toContain('repeatCount="indefinite"');
+      expect(question).toContain('r:embed="rIdPuzzleChime"');
+      expect(zip.file("ppt/media/puzzle-chime.wav")).not.toBeNull();
+      const objectIds = [
+        ...question.matchAll(/<p:cNvPr\b[^>]*id="(\d+)"/g),
+      ].map((m) => m[1]);
+      for (const target of question.matchAll(/<p:spTgt spid="(\d+)"/g))
+        expect(objectIds).toContain(target[1]);
+      const timingIds = [...question.matchAll(/<p:cTn id="(\d+)"/g)].map(
+        (m) => m[1],
+      );
+      expect(new Set(timingIds).size).toBe(timingIds.length);
+      if (size === 4) {
+        s.settings.reducedMotion = true;
+        const reduced = await JSZip.loadAsync(
+          await renderPptx(
+            s,
+            new Map([
+              [s.content.imageId, await readFile("public/art/forest.png")],
+            ]),
+          ),
+        );
+        const reducedQuestion = await reduced
+          .file("ppt/slides/slide3.xml")!
+          .async("string");
+        expect(reducedQuestion).toContain('nodeType="interactiveSeq"');
+        expect(reducedQuestion).not.toContain("<p:animEffect");
+        expect(reducedQuestion).not.toContain("<p:animRot");
+        expect(reduced.file("ppt/media/puzzle-chime.wav")).toBeNull();
+      }
     },
     30000,
   );

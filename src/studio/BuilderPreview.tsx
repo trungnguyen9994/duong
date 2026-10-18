@@ -1,4 +1,6 @@
 import { gameThemeStyle } from "./game-theme";
+import { characterLabel } from "../domain/media-capabilities";
+import { isAdventure, adventureConfig } from "../domain/adventure-config";
 import { useEffect, useState } from "react";
 import {
   assetIds,
@@ -65,7 +67,9 @@ export function BuilderPreview({
       : null;
   const questions =
     currentStage?.questions ||
-    (spec.kind === "picture_reveal" ? spec.content.questions : []);
+    (spec.kind !== "word_wheel" && spec.kind !== "journey"
+      ? spec.content.questions
+      : []);
   const index = Math.max(
       0,
       questions.findIndex((q) => q.id === questionId),
@@ -116,7 +120,13 @@ export function BuilderPreview({
           className={`builder-preview-stage preview-${spec.kind}`}
           style={{
             ...gameThemeStyle(spec),
-            backgroundImage: `url('/art/${spec.kind === "word_wheel" ? "castle" : "forest"}.png')`,
+            backgroundImage: isAdventure(spec.kind)
+              ? adventureConfig[spec.kind].background
+                ? `url('${adventureConfig[spec.kind].background}')`
+                : "linear-gradient(#8b9dae,#65c6ed)"
+              : spec.kind === "clever_frog"
+                ? "url('/art/frog/image1.png')"
+                : `url('/art/${spec.kind === "word_wheel" ? "castle" : "forest"}.png')`,
           }}
         >
           <SceneBackground spec={spec} url={background?.url} />
@@ -143,7 +153,64 @@ export function BuilderPreview({
                 ? `Chặng ${Math.min(stage, spec.kind === "journey" ? spec.content.stages.length - 1 : 0) + 1}: ${currentStage.title || "Tên chặng"}`
                 : spec.metadata.title || templateRegistry[spec.kind].name}
             </div>
-            {spec.kind === "word_wheel" ? (
+            {isAdventure(spec.kind) ? (
+              <>
+                <div className="preview-frogs">
+                  {questions.map((q, i) => (
+                    <div key={q.id}>
+                      <img
+                        src={
+                          adventureConfig[
+                            spec.kind as keyof typeof adventureConfig
+                          ].objects[
+                            i %
+                              adventureConfig[
+                                spec.kind as keyof typeof adventureConfig
+                              ].objects.length
+                          ]
+                        }
+                        alt=""
+                      />
+                      <span>{q.label || `Câu ${i + 1}`}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="preview-clue">
+                  {question?.prompt || "Nhập câu hỏi để bắt đầu."}
+                </div>
+                {question?.imageId && find(question.imageId)?.url && (
+                  <img
+                    className="preview-content-image"
+                    src={find(question.imageId)!.url}
+                    alt="Ảnh câu hỏi"
+                  />
+                )}
+              </>
+            ) : spec.kind === "clever_frog" ? (
+              <>
+                <div className="preview-frogs">
+                  {questions.map((q, i) => (
+                    <div key={q.id}>
+                      <img
+                        src={`/art/frog/image${[7, 8, 9, 10, 11, 12, 13, 14, 5, 6][i % 10]}.png`}
+                        alt=""
+                      />
+                      <span>{q.label || `Ếch ${i + 1}`}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="preview-clue">
+                  {question?.prompt || "Thêm câu hỏi cho chú ếch."}
+                </div>
+                {question?.imageId && find(question.imageId)?.url && (
+                  <img
+                    className="preview-content-image"
+                    src={find(question.imageId)!.url}
+                    alt="Ảnh câu hỏi"
+                  />
+                )}
+              </>
+            ) : spec.kind === "word_wheel" ? (
               <>
                 <div className="preview-word">
                   {Array.from(phrase).map((letter, i) => (
@@ -179,6 +246,13 @@ export function BuilderPreview({
                 <div className="preview-clue">
                   {question?.prompt || "Thêm câu hỏi để mở từng mảnh ghép."}
                 </div>
+                {question?.imageId && find(question.imageId)?.url && (
+                  <img
+                    className="preview-content-image"
+                    src={find(question.imageId)!.url}
+                    alt="Ảnh câu hỏi"
+                  />
+                )}
               </>
             ) : (
               <>
@@ -198,18 +272,26 @@ export function BuilderPreview({
               </>
             )}
           </div>
-          <div className="preview-character">
-            <div>Cùng khám phá nhé!</div>
-            <img
-              src={
-                character?.url ||
-                (spec.kind === "picture_reveal"
-                  ? "/art/explorer-girl.png"
-                  : "/art/explorer.png")
-              }
-              alt=""
-            />
-          </div>
+          {characterLabel(spec.kind) && (
+            <div className="preview-character">
+              <div>
+                {spec.kind === "football" ? "Thủ môn" : "Cùng khám phá nhé!"}
+              </div>
+              <img
+                src={
+                  character?.url ||
+                  (spec.kind === "football"
+                    ? "/art/football/image4.png"
+                    : spec.kind === "clever_frog"
+                      ? "/art/frog/image20.png"
+                      : spec.kind === "picture_reveal"
+                        ? "/art/explorer-girl.png"
+                        : "/art/explorer.png")
+                }
+                alt=""
+              />
+            </div>
+          )}
         </div>
       </div>
       {error && (

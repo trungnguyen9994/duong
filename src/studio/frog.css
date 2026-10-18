@@ -1,0 +1,207 @@
+.eg-frog-theater {
+  background: #62c8c5 url("/art/frog/image1.png") center/cover;
+  min-height: 100vh;
+  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+  aspect-ratio: auto;
+  padding: 70px 3% 24px;
+}
+.frog-main {
+  position: relative;
+  z-index: 1;
+  padding: 20px 28px 36px;
+  max-width: 1100px;
+  margin: auto;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 100%;
+  overflow-y: auto;
+}
+.frog-main h1 {
+  text-align: center;
+  color: #174e26;
+  font-size: clamp(26px, 4vw, 44px);
+  background: #fffbe9ed;
+  border-radius: 24px;
+  padding: 12px 24px;
+  margin: 12px auto;
+  max-width: 800px;
+}
+.frog-progress,
+.frog-instructions {
+  text-align: center;
+  background: #fff9e7ed;
+  border-radius: 16px;
+  padding: 8px 16px;
+  width: fit-content;
+  margin: 8px auto;
+  color: #17552f;
+}
+.frog-pond {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px 12px;
+  padding: 30px 0;
+}
+.frog-choice {
+  position: relative;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
+}
+.frog-choice img {
+  width: 100%;
+  max-width: 150px;
+  height: 135px;
+  object-fit: contain;
+  animation: frog-bob 2.2s ease-in-out infinite;
+}
+.frog-choice:nth-child(even) img {
+  animation-delay: -1s;
+}
+.frog-choice strong {
+  background: #fff9d6;
+  padding: 7px 14px;
+  border-radius: 20px;
+  color: #195a2a;
+  font-size: 18px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.frog-choice:hover:not(:disabled) {
+  transform: translateY(-8px);
+}
+.frog-choice.frog-done {
+  opacity: 0.35;
+  filter: grayscale(0.7);
+}
+.frog-question {
+  position: relative;
+  max-width: 800px;
+  margin: 20px auto;
+  background: var(--game-question, #fffbe9);
+  color: var(--game-text, #174e26);
+  border: 4px solid #4c9c39;
+  border-radius: 28px;
+  padding: 26px 30px 36px;
+  text-align: center;
+  min-height: 320px;
+  box-shadow: 0 12px 25px #14532d33;
+}
+.frog-question h2 {
+  font-size: 26px;
+}
+.frog-prompt {
+  font-size: clamp(23px, 3vw, 36px);
+  white-space: pre-wrap;
+}
+.frog-answer {
+  background: #d6f5c8;
+  border: 2px solid #5f9c45;
+  border-radius: 16px;
+  padding: 18px;
+  margin: 15px 0;
+  font-size: 24px;
+  animation: frog-reveal 0.3s ease-out;
+}
+.frog-host {
+  position: absolute;
+  bottom: -20px;
+  right: -35px;
+  width: 100px;
+  height: 110px;
+  object-fit: contain;
+  pointer-events: none;
+}
+.frog-question button {
+  margin: 8px;
+}
+.frog-question-image {
+  max-width: 90%;
+  max-height: 180px;
+  object-fit: contain;
+}
+.frog-still * {
+  animation: none !important;
+  transition: none !important;
+}
+.preview-frogs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.preview-frogs img {
+  height: 45px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.preview-frogs div {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  font-size: 8px;
+  background: #ffffffb0;
+  border-radius: 8px;
+}
+.preview-frogs span {
+  max-width: 100%;
+  overflow: hidden;
+}
+@keyframes frog-bob {
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+@keyframes frog-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 999px) {
+  .eg-frog-theater { display: flex; flex-direction: column; align-items: stretch; gap: 14px; padding: 78px 12px 24px; }
+  .eg-frog-theater > .eg-roster { order: 0; }
+  .eg-frog-theater .eg-scoreboard.eg-roster > .eg-roster-scores { display: flex; max-height: 80px; overflow-x: auto; }
+  .eg-frog-theater .eg-roster-scores > div { min-width: 130px; width: auto; }
+  .eg-frog-theater .eg-roster > label { padding: 8px; }
+  .eg-frog-theater .eg-current-player { padding: 6px; }
+  .frog-main {
+    padding: 12px;
+  }
+  .frog-pond {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .frog-choice img {
+    height: 105px;
+  }
+  .frog-question {
+    padding: 18px 14px;
+  }
+  .frog-host {
+    right: 0;
+    width: 65px;
+    height: 75px;
+    bottom: -36px;
+  }
+  .frog-choice strong {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eg-frog-theater * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

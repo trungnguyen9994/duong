@@ -3,6 +3,14 @@
   color: #16345a;
   line-height: 1.6;
 }
+.about-author { max-width:1180px; margin:32px auto; padding:32px 30px; display:grid; grid-template-columns:minmax(240px,420px) minmax(0,1fr); align-items:center; gap:40px; scroll-margin-top:100px; }
+.about-author > img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; object-position:54% 45%; border-radius:20px; }
+.about-author h2 { font-size:clamp(26px,3vw,36px); margin:0 0 24px; }
+.about-author dl { margin:0; }
+.about-author dl > div { margin:0 0 16px; }
+.about-author dt { color:#63748b; font-size:14px; margin-bottom:4px; }
+.about-author dd { margin:0; color:#16345a; font-size:18px; font-weight:600; overflow-wrap:anywhere; }
+@media(max-width:700px){.about-author{grid-template-columns:1fr;gap:24px;padding:24px 20px}.about-author > img{max-width:420px}.about-author h2{margin-bottom:20px}}
 .about-page h1,
 .about-page h2,
 .about-page h3 {

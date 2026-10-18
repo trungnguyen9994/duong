@@ -1,0 +1,260 @@
+.adventure-player {
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 80px);
+  background: #78cae7 center/cover;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 20px;
+  padding: 80px 3% 30px;
+  box-sizing: border-box;
+  font-family: var(--game-font, Roboto, sans-serif);
+}
+.adventure-player > aside {
+  align-self: start;
+}
+.adventure-player > aside,
+.adventure-main {
+  position: relative;
+  z-index: 1;
+}
+.adventure-toolbar {
+  position: absolute;
+  top: 15px;
+  left: 3%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2;
+}
+.adventure-toolbar span {
+  background: white;
+  border-radius: 16px;
+  padding: 12px;
+}
+.adventure-player button {
+  min-height: 44px;
+}
+.adventure-main h1,
+.adventure-progress,
+.adventure-instructions {
+  background: #ffffffe8;
+  padding: 12px 20px;
+  border-radius: 18px;
+  text-align: center;
+  color: #164b31;
+  margin: 8px auto;
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.adventure-main h1 {
+  font-size: clamp(24px, 4vw, 40px);
+}
+.adventure-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  padding: 30px 0;
+}
+.adventure-boat_rescue {
+  background: linear-gradient(#839bb0 0 32%, #64c6ed 33% 100%);
+}
+.adventure-boat_rescue .adventure-board {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border-bottom: 25px solid #e2c183;
+}
+.adventure-object {
+  position: relative;
+  background: transparent !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+}
+.adventure-object > img {
+  width: 100%;
+  height: 175px;
+  object-fit: contain;
+}
+.adventure-object strong {
+  background: #fff4cf;
+  border-radius: 16px;
+  padding: 10px;
+  color: #184f34;
+}
+.adventure-object.rescued {
+  opacity: 0.4;
+}
+.adventure-object .adventure-cage {
+  position: absolute;
+  inset: 0;
+  height: 180px;
+  width: 100%;
+  object-fit: fill;
+}
+.adventure-card {
+  position: relative;
+  background: var(--game-question, #fffbe9);
+  color: var(--game-text, #163b54);
+  border: 3px solid #619534;
+  border-radius: 24px;
+  margin: 22px auto;
+  padding: 24px;
+  max-width: 850px;
+  text-align: center;
+  box-shadow: 0 12px 30px #0003;
+}
+.adventure-prompt {
+  font-size: clamp(23px, 3vw, 34px);
+  white-space: pre-wrap;
+}
+.adventure-card button {
+  margin: 6px;
+}
+.adventure-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.adventure-choices button {
+  background: var(--game-answer, #ffe8a6);
+  padding: 14px;
+  color: var(--game-text, #183c61);
+  font-size: 21px;
+  border: 2px solid #ba944d;
+  border-radius: 16px;
+}
+.adventure-action-scene {
+  position: relative;
+  overflow: hidden;
+  height: 170px;
+  max-width: 650px;
+  margin: 14px auto;
+  background: #d2f2f74d;
+}
+.adventure-actor {
+  position: absolute;
+  left: 38%;
+  bottom: 5%;
+  width: 125px;
+  height: 150px;
+  object-fit: contain;
+}
+.adventure-action-scene .adventure-cage {
+  position: absolute;
+  left: 35%;
+  bottom: 0;
+  width: 150px;
+  height: 150px;
+}
+.adventure-keeper {
+  position: absolute;
+  left: 55%;
+  top: 0;
+  width: 95px;
+  height: 100px;
+  object-fit: contain;
+}
+.adventure-football .adventure-action-scene {
+  background: url("/art/football/image1.png") center/cover;
+}
+.adventure-football .adventure-actor {
+  width: 55px;
+  height: 55px;
+  left: 45%;
+  bottom: 5%;
+}
+.adventure-football .phase-correct .adventure-actor {
+  animation: goal 0.8s ease-out forwards;
+}
+.adventure-football .phase-wrong .adventure-actor {
+  animation: miss 0.8s ease-out forwards;
+}
+.adventure-boat_rescue .phase-correct .adventure-actor {
+  animation: shore 1s ease-out forwards;
+}
+.adventure-forest_rescue .phase-correct .adventure-actor {
+  animation: freedom 1s ease-out forwards;
+}
+.adventure-shore {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 22%;
+  background: #e5c17f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #665016;
+  font-weight: bold;
+}
+.adventure-answer {
+  background: #d6f4ce;
+  padding: 16px;
+  border-radius: 14px;
+  font-size: 24px;
+}
+.adventure-question-image {
+  max-height: 150px;
+  max-width: 100%;
+  object-fit: contain;
+}
+.adventure-still * {
+  animation: none !important;
+  transition: none !important;
+}
+@keyframes goal {
+  to {
+    transform: translate(55px, -100px) scale(0.3);
+  }
+}
+@keyframes miss {
+  to {
+    transform: translate(240px, -100px) scale(0.4);
+  }
+}
+@keyframes shore {
+  to {
+    transform: translateX(-180px);
+  }
+}
+@keyframes freedom {
+  to {
+    transform: translateX(160px) rotate(-6deg);
+  }
+}
+@media (max-width: 999px) {
+  .adventure-player {
+    grid-template-columns: 1fr;
+    padding: 80px 15px 25px;
+  }
+  .adventure-player > .eg-roster {
+    grid-template-columns: 1fr;
+    order: 0;
+  }
+  .adventure-player .eg-roster-scores {
+    max-height: 120px;
+  }
+  .adventure-board,
+  .adventure-boat_rescue .adventure-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .adventure-object > img {
+    height: 140px;
+  }
+  .adventure-card {
+    padding: 16px;
+  }
+  .adventure-choices {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .adventure-player * {
+    animation: none !important;
+  }
+}

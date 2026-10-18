@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 import { sql, transaction, result } from "./database";
+import { createRateLimiter } from "./security";
 
 const hash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
@@ -96,23 +97,28 @@ async function mail(email: string, purpose: "verify" | "reset", id: string) {
   });
 }
 export const authRouter = express.Router();
-const attempts = new Map<string, { n: number; until: number }>();
+const authLimit = createRateLimiter(
+  30,
+  600000,
+  (req) => `${req.ip}:${req.path}`,
+);
+const accountLimit = createRateLimiter(
+  20,
+  900000,
+  (req) =>
+    `${req.originalUrl.split("?")[0]}:${String(req.body?.email || "")
+      .trim()
+      .toLowerCase()
+      .slice(0, 254)}`,
+);
+const dummyHash = bcrypt.hashSync("invalid-account-placeholder", 12);
 authRouter.use((req, res, next) => {
   if (req.method === "GET") return next();
-  const key = `${req.ip}:${req.path}`,
-    now = Date.now(),
-    old = attempts.get(key),
-    a = old && old.until > now ? old : { n: 0, until: now + 600000 };
-  a.n++;
-  attempts.set(key, a);
-  if (attempts.size > 10000)
-    for (const [k, v] of attempts) if (v.until < now) attempts.delete(k);
-  if (a.n > 30)
-    return res
-      .status(429)
-      .json({ error: "Thử quá nhiều lần. Vui lòng chờ ít phút." });
-  next();
+  authLimit(req, res, next);
 });
+authRouter.use(["/login", "/reset", "/signup"], (req, res, next) =>
+  req.method === "POST" ? accountLimit(req, res, next) : next(),
+);
 const credentials = z.object({
   email: z
     .string()
@@ -186,19 +192,41 @@ authRouter.get("/verify", async (req, res) => {
   );
 });
 authRouter.post("/login", async (req, res) => {
-  const input = z.object({
-      email: z.string().trim().min(1).max(254).transform(value=>value.toLowerCase()),
-      password: z.string().min(8).max(128),
-      remember: z.boolean().default(true),
-    })
+  const input = z
+      .object({
+        email: z
+          .string()
+          .trim()
+          .min(1)
+          .max(254)
+          .transform((value) => value.toLowerCase()),
+        password: z.string().min(8).max(128),
+        remember: z.boolean().default(true),
+      })
       .parse(req.body),
-    user = (await sql("SELECT * FROM users WHERE email=? OR username=?", [input.email,input.email]))[0];
-  if (!user || !(await bcrypt.compare(input.password, user.password_hash)))
-    return res.status(401).json({ error: "Tài khoản hoặc mật khẩu không đúng." });
+    user = (
+      await sql("SELECT * FROM users WHERE email=? OR username=?", [
+        input.email,
+        input.email,
+      ])
+    )[0];
+  const passwordMatches = await bcrypt.compare(
+    input.password,
+    user?.password_hash || dummyHash,
+  );
+  if (!user || !passwordMatches)
+    return res
+      .status(401)
+      .json({ error: "Tài khoản hoặc mật khẩu không đúng." });
   if (!user.email_confirmed_at)
     return res
       .status(401)
       .json({ error: "Vui lòng xác minh email trước khi đăng nhập." });
+  const profile = (
+    await sql("SELECT status FROM profiles WHERE id=?", [user.id])
+  )[0];
+  if (profile?.status !== "active")
+    return res.status(403).json({ error: "Tài khoản chưa hoạt động." });
   res.json({ session: await newSession(user.id, res, input.remember) });
 });
 authRouter.get("/session", async (req, res) => {

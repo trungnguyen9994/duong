@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import { useRef } from "react";
+import { useAuth } from "./auth";
+import { DEMO_FOREST_IMAGE } from "../domain/demo-assets";
+import { isAdventure, adventureConfig } from "../domain/adventure-config";
 import { useParams, Link } from "react-router-dom";
 import { JourneyPlayer } from "./JourneyPlayer";
 import { PicturePlayer } from "./PicturePlayer";
@@ -15,21 +19,105 @@ export function GamePlayer({
   onExit,
   assets,
   record = false,
+  demo = false,
 }: {
   spec: StudioSpec;
   onExit: () => void;
   assets?: Asset[];
   record?: boolean;
+  demo?: boolean;
 }) {
+  const { session, loading } = useAuth();
+  const [exporting, setExporting] = useState(false),
+    [exportError, setExportError] = useState("");
+  const running = useRef<AbortController | null>(null);
+  useEffect(() => () => running.current?.abort(), []);
+  async function exportPreview() {
+    if (running.current) return;
+    const controller = new AbortController();
+    running.current = controller;
+    setExporting(true);
+    setExportError("");
+    try {
+      const job = await api<{ id: string }>("/exports", {
+        method: "POST",
+        signal: controller.signal,
+        body: JSON.stringify({ spec, demo, key: crypto.randomUUID() }),
+      });
+      for (let i = 0; i < 120; i++) {
+        const status = await api<{ status: string; error?: string }>(
+          `/jobs/${job.id}`,
+          { signal: controller.signal },
+        );
+        if (status.status === "failed")
+          throw Error(status.error || "Xuất PowerPoint thất bại.");
+        if (status.status === "completed") {
+          const file = await api<{ signedUrl: string }>(
+            `/exports/${job.id}/download`,
+            { signal: controller.signal },
+          );
+          window.location.assign(file.signedUrl);
+          return;
+        }
+        await new Promise<void>((resolve, reject) => {
+          const timer = window.setTimeout(() => {
+            controller.signal.removeEventListener("abort", abort);
+            resolve();
+          }, 1000);
+          function abort() {
+            window.clearTimeout(timer);
+            reject(new DOMException("Aborted", "AbortError"));
+          }
+          controller.signal.addEventListener("abort", abort, { once: true });
+        });
+      }
+      throw Error("File vẫn đang xử lý. Bạn có thể tải ở Lịch sử xuất.");
+    } catch (e) {
+      if (!controller.signal.aborted) setExportError((e as Error).message);
+    } finally {
+      if (!controller.signal.aborted) {
+        setExporting(false);
+        running.current = null;
+      }
+    }
+  }
   const manifest = getTemplate(spec.template.type, spec.template.version),
     Renderer = webTemplates[manifest.webRenderer as keyof typeof webTemplates];
   return (
-    <Renderer
-      spec={spec}
-      onExit={onExit}
-      initialAssets={assets}
-      record={record}
-    />
+    <>
+      <Renderer
+        spec={spec}
+        onExit={onExit}
+        initialAssets={assets}
+        record={record}
+      />
+      <div
+        className="eg-preview-export"
+        aria-label="Xuất trò chơi đang chơi thử"
+      >
+        {session ? (
+          <button
+            disabled={loading || exporting}
+            onClick={() => void exportPreview()}
+          >
+            {exporting ? "Đang xuất PowerPoint…" : "Xuất PowerPoint"}
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            onClick={() =>
+              localStorage.setItem(
+                "edugame-return",
+                window.location.pathname + window.location.search,
+              )
+            }
+          >
+            Đăng nhập để xuất PowerPoint
+          </Link>
+        )}
+        {exportError && <p role="alert">{exportError}</p>}
+      </div>
+    </>
   );
 }
 export function SharedPlayer() {
@@ -76,10 +164,10 @@ export function SharedPlayer() {
 export function DemoPlayer() {
   const { type } = useParams(),
     [spec, setSpec] = useState<StudioSpec | null>(null);
-  const imageId = "00000000-0000-4000-8000-000000000001";
+  const imageId = DEMO_FOREST_IMAGE;
   useEffect(() => {
     if (type === "journey") {
-      void migrateLegacy(sampleGame(), async () => imageId).then(game => {
+      void migrateLegacy(sampleGame(), async () => imageId).then((game) => {
         game.settings.playMode = "individual";
         game.settings.teams = ["Minh Anh", "Gia Bảo", "Ngọc Hà", "Đức Minh"];
         setSpec(game);
@@ -87,9 +175,40 @@ export function DemoPlayer() {
       return;
     }
     const s = createStudioGame(
-      type === "word_wheel" ? "word_wheel" : "picture_reveal",
+      type && isAdventure(type)
+        ? type
+        : type === "clever_frog"
+          ? "clever_frog"
+          : type === "word_wheel"
+            ? "word_wheel"
+            : "picture_reveal",
     );
     s.settings.teams = ["Minh Anh", "Gia Bảo", "Ngọc Hà", "Đức Minh"];
+    if (
+      s.kind === "forest_rescue" ||
+      s.kind === "boat_rescue" ||
+      s.kind === "football"
+    ) {
+      s.content.questions.forEach((q, i) => {
+        q.prompt = `${i + 2} × 3 bằng bao nhiêu?`;
+        q.choices = [
+          String((i + 2) * 3),
+          String((i + 2) * 3 + 1),
+          String((i + 2) * 3 - 1),
+          String((i + 2) * 3 + 2),
+        ];
+        if (s.kind === "boat_rescue") q.choices[3] = "";
+        q.hint = "Đếm thêm 3 mỗi lần nhé.";
+        q.explanation = `Lấy ${i + 2} ba lần được ${(i + 2) * 3}.`;
+      });
+    }
+    if (s.kind === "clever_frog") {
+      s.content.questions.forEach((q, i) => {
+        q.prompt = `${i + 1} × 3 bằng bao nhiêu?`;
+        q.choices[0] = String((i + 1) * 3);
+        q.explanation = `Lấy ${i + 1} ba lần được ${(i + 1) * 3}.`;
+      });
+    }
     if (s.kind === "word_wheel") {
       s.metadata.title = "Vòng quay Tiếng Việt";
       s.metadata.subjectId = "vietnamese";
@@ -127,6 +246,7 @@ export function DemoPlayer() {
       </p>
       {spec && (
         <GamePlayer
+          demo
           spec={spec}
           assets={[
             {

@@ -1,9 +1,12 @@
 import sharp from "sharp";
+import { readFile } from "node:fs/promises";
+import { DEMO_FOREST_IMAGE } from "../src/domain/demo-assets";
 import { admin, checked } from "./client";
 import { renderPptx } from "./pptx";
 import { assetIds, studioSpecSchema } from "../src/domain/studio-spec";
 import { pathToFileURL } from "node:url";
 import { cropImage } from "./media-crop";
+import { validateImage } from "./image-validation";
 
 export async function processJob() {
   const job = checked(await admin.rpc("claim_job"));
@@ -31,6 +34,15 @@ export async function processJob() {
       const spec = studioSpecSchema.parse(job.payload.spec);
       const resolved = new Map<string, Buffer>();
       for (const id of assetIds(spec)) {
+        if (job.payload.demo === true && id === DEMO_FOREST_IMAGE) {
+          resolved.set(
+            id,
+            await readFile(
+              new URL("../public/art/forest.png", import.meta.url),
+            ),
+          );
+          continue;
+        }
         const asset = checked(
           await admin
             .from("assets")
@@ -101,6 +113,12 @@ export async function processJob() {
     const bytes = Buffer.from(await blob.arrayBuffer());
     if (!job.payload.sourceAssetId && bytes.length > 5242880)
       throw new Error("Ảnh vượt 5 MB.");
+    await validateImage(
+      bytes,
+      job.payload.mime,
+      job.payload.sourceAssetId ? undefined : job.payload.bytes,
+      job.payload.sourceAssetId ? 33554432 : 5242880,
+    );
     const png = bytes
       .subarray(0, 8)
       .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
