@@ -68,9 +68,13 @@ const settings = {
     existing.STORAGE_SIGNING_SECRET || randomBytes(48).toString("hex"),
   INTERNAL_WORKER_SECRET:
     existing.INTERNAL_WORKER_SECRET || randomBytes(32).toString("hex"),
-  SMTP_HOST: "127.0.0.1",
-  SMTP_PORT: "55425",
-  MAIL_FROM: "EduGame Studio <no-reply@edugame.local>",
+  SMTP_HOST: process.env.SMTP_HOST || existing.SMTP_HOST || "127.0.0.1",
+  SMTP_PORT: process.env.SMTP_PORT || existing.SMTP_PORT || "55425",
+  SMTP_SECURE: process.env.SMTP_SECURE || existing.SMTP_SECURE || "false",
+  SMTP_USER: process.env.SMTP_USER || existing.SMTP_USER || "",
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || existing.SMTP_PASSWORD || "",
+  MAIL_FROM:
+    process.env.MAIL_FROM || existing.MAIL_FROM || "EduGame Studio <no-reply@edugame.local>",
 };
 writeFileSync(
   ".env",

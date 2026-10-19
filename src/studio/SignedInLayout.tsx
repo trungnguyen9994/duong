@@ -38,7 +38,6 @@ export function SignedInLayout({ children }: { children: ReactNode }) {
         className="eg-sidebar eg-persistent-sidebar"
         aria-label="Không gian giáo viên"
       >
-        <p>KHÔNG GIAN GIÁO VIÊN</p>
         {links.map(([to, icon, label]) => (
           <NavLink key={to} to={to} end aria-label={label} title={label}>
             <span className="eg-sidebar-icon" aria-hidden="true">

@@ -90,6 +90,15 @@ Không dùng thông tin production để chạy các bài test local.
 
 ### Cấu hình server và hai tiến trình API/worker
 
+Mẫu cấu hình riêng cho Dương Learning nằm tại `deploy/production.env.example`.
+Copy file này thành `.env` ở thư mục gốc trên server, điền thông tin database,
+hai secret và `SMTP_PASSWORD` bằng mật khẩu ứng dụng Gmail đã cấp.
+Mẫu đã đặt `smtp.gmail.com:465`, TLS, tài khoản gửi
+`nguyenngoctrunggtvt@gmail.com` và tên hiển thị `Dương Learning`.
+Có thể đặt `SMTP_PASSWORD` trực tiếp trong phần Environment Variables của hosting;
+biến môi trường sẽ được ưu tiên hơn giá trị trong `.env`. Sau khi đổi cấu hình,
+khởi động lại API. File `.env` thật được Git bỏ qua; chỉ file mẫu được đưa lên Git.
+
 Frontend/API nên dùng chung origin HTTPS, ví dụ `https://example.edu.vn`.
 Đây là ví dụ; thay domain, đường dẫn và thông tin database bằng giá trị thật.
 Không thêm `/api` hoặc dấu `/` cuối vào ba URL dưới đây.
