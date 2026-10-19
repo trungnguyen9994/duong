@@ -7,6 +7,7 @@ import { assetIds, studioSpecSchema } from "../src/domain/studio-spec";
 import { pathToFileURL } from "node:url";
 import { cropImage } from "./media-crop";
 import { validateImage } from "./image-validation";
+import { pool } from "./database";
 
 export async function processJob() {
   const job = checked(await admin.rpc("claim_job"));
@@ -259,4 +260,5 @@ if (
     }
     await new Promise((resolve) => setTimeout(resolve, 1500));
   }
+  await pool.end();
 }

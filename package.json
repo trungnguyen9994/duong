@@ -23,7 +23,10 @@
     "local:restore-check": "tsx server/restore-check.ts",
     "test:auth": "tsx scripts/test-mariadb.ts",
     "local:backup-check": "tsx server/check-backup.ts",
-    "db:import-supabase": "node scripts/import-supabase.mjs"
+    "db:import-supabase": "node scripts/import-supabase.mjs",
+    "start:api": "node scripts/start-production.mjs api",
+    "start:worker": "node scripts/start-production.mjs worker",
+    "start": "npm run start:api"
   },
   "overrides": {
     "image-size": "^2.0.3"
@@ -33,6 +36,7 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.8",
     "express": "^5.3.0",
+    "jszip": "^3.10.1",
     "mysql2": "^3.24.6",
     "nodemailer": "^10.1.1",
     "pptxgenjs": "^4.0.1",
@@ -40,9 +44,9 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.18.4",
     "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
     "zod": "^4.6.7",
-    "zustand": "^5.0.15",
-    "jszip": "^3.10.1"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",
@@ -57,7 +61,6 @@
     "concurrently": "^10.0.6",
     "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.15",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
     "vitest": "^5.0.4"
