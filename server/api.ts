@@ -17,6 +17,7 @@ import { deckSlides } from "./pptx";
 import { authRouter, requestToken } from "./auth";
 import { fileRouter } from "./storage";
 import { sql } from "./database";
+import { databaseUnavailable } from "./database-status";
 
 const app = express();
 app.disable("x-powered-by");
@@ -903,6 +904,13 @@ app.use(
       "API request failed:",
       known ? message : (error as { code?: string })?.code || "REQUEST_ERROR",
     );
+    if (databaseUnavailable(error)) {
+      res.setHeader("Retry-After", "2");
+      return res.status(503).json({
+        error:
+          "Cơ sở dữ liệu đang khởi động hoặc tạm mất kết nối. Vui lòng thử lại sau ít giây.",
+      });
+    }
     res
       .status(
         [400, 413, 415].includes(httpStatus)

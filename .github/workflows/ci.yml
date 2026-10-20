@@ -13,6 +13,7 @@ jobs:
       - run: npm ci
       - run: npm run local:start
       - run: npm run check:server
+      - run: npm run test:startup
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium

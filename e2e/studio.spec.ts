@@ -8,6 +8,144 @@ test.afterAll(async () => {
 });
 import { migrateLegacy } from "../src/domain/studio-migration";
 import { sampleGame } from "../src/domain/sample";
+import { defaultQuestions } from "../src/data/default-questions";
+
+test("catalog reconnects after database startup without reloading the page", async ({
+  page,
+}) => {
+  let requests = 0;
+  await page.route("**/api/catalog", (route) => {
+    requests++;
+    return requests < 2
+      ? route.fulfill({
+          status: 503,
+          json: { error: "Database đang khởi động" },
+        })
+      : route.fulfill({
+          json: {
+            subjects: [{ id: "math", name: "Toán đã phục hồi" }],
+            templates: [{ type: "journey" }],
+          },
+        });
+  });
+  await page.goto("/library");
+  await expect(page.getByRole("alert")).toContainText("Đang tự kết nối lại");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("combobox", { name: /Môn học/ })
+      .locator('option[value="math"]'),
+  ).toHaveText("Toán đã phục hồi");
+  await expect(page.locator(".eg-template")).toHaveCount(1);
+  expect(requests).toBeGreaterThanOrEqual(2);
+});
+
+test("question bank filters original Edulive questions by textbook and keeps source answers", async ({
+  page,
+}) => {
+  // Isolate the UI from the unavailable local database; never bypass real auth.
+  const userId = "00000000-0000-4000-8000-000000000001";
+  await page.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      json: {
+        session: {
+          user: {
+            id: userId,
+            email: "question-bank-test@example.invalid",
+            email_confirmed_at: "2026-10-20T00:00:00Z",
+          },
+        },
+      },
+    }),
+  );
+  await page.route("**/api/me", (route) =>
+    route.fulfill({
+      json: {
+        id: userId,
+        display_name: "Kiểm tra kho câu hỏi",
+        role: "teacher",
+        status: "active",
+        permissions: [],
+      },
+    }),
+  );
+  await page.route("**/api/questions", (route) =>
+    route.fulfill({ json: defaultQuestions }),
+  );
+  await page.goto("/questions");
+  await expect(page.getByRole("status")).toContainText("168 câu hỏi");
+  await page.getByRole("button", { name: "Trang sau →" }).click();
+  await page
+    .getByLabel("Bộ sách", { exact: true })
+    .selectOption("Kết nối tri thức với cuộc sống");
+  await expect(page.getByRole("status")).toContainText("48 câu hỏi");
+  await page.getByLabel("Lớp", { exact: true }).selectOption("3");
+  await expect(page.getByRole("status")).toContainText("25 câu hỏi");
+  await expect(page.getByRole("status")).toContainText("Hiển thị 1–12");
+  await expect(page.locator(".question-bank-card")).toHaveCount(12);
+  await expect(
+    page.getByText(/Các bài bị khóa, bài cần hình minh họa/),
+  ).toBeVisible();
+  await page
+    .getByLabel("Bài học", { exact: true })
+    .selectOption("Bài 45. Các số có 4 chữ số. Số 10 000 - tiết 2 - trang 6");
+  await expect(page.getByRole("status")).toContainText("4 câu hỏi");
+  await page
+    .getByPlaceholder("Nhập nội dung hoặc tên bài…")
+    .fill("hàng chục là 7");
+  await expect(page.locator(".question-bank-card")).toHaveCount(1);
+  const card = page.locator(".question-bank-card");
+  await expect(card).toContainText("Kết nối tri thức với cuộc sống · Tập 2");
+  await expect(
+    card.getByRole("link", { name: "Nguồn Edulive · Slide 12" }),
+  ).toHaveAttribute(
+    "href",
+    "https://edulive.net/bai-45-cac-so-co-4-chu-so-so-10-000-tiet-2-trang-6v1",
+  );
+  await card.getByText("Xem đáp án và lời giải").click();
+  await expect(card).toContainText("Đáp án: B. 8 275");
+  await expect(card).toContainText(
+    "Nguồn chưa cung cấp lời giải cho câu hỏi này.",
+  );
+  await page.getByPlaceholder("Nhập nội dung hoặc tên bài…").fill("");
+  await page.getByLabel("Bộ sách", { exact: true }).selectOption("Cánh Diều");
+  await expect(page.getByRole("status")).toContainText("120 câu hỏi");
+  await expect(page.getByLabel("Bài học", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Lớp", { exact: true })).toHaveValue("");
+  await page
+    .getByLabel("Bộ sách", { exact: true })
+    .selectOption("Kết nối tri thức với cuộc sống");
+  await page.getByLabel("Lớp", { exact: true }).selectOption("1");
+  await expect(page.getByRole("status")).toContainText("7 câu hỏi");
+  await expect(page.locator(".question-bank-card")).toHaveCount(7);
+  await expect(
+    page.getByRole("heading", { name: "Số 13 gồm có:", exact: true }),
+  ).toBeVisible();
+  for (const card of await page.locator(".question-bank-card").all()) {
+    await expect(card.locator("small")).toContainText("Toán 1");
+  }
+  await page
+    .getByLabel("Bài học", { exact: true })
+    .selectOption("Bài 21: Số tròn chục (Tiết 3) - Trang 8");
+  await expect(page.getByRole("status")).toContainText("1 câu hỏi");
+  await page.getByLabel("Lớp", { exact: true }).selectOption("2");
+  await expect(page.getByLabel("Bài học", { exact: true })).toHaveValue("");
+  await expect(page.getByRole("status")).toContainText("16 câu hỏi");
+  for (const card of await page.locator(".question-bank-card").all()) {
+    await expect(card.locator("small")).toContainText("Toán 2");
+  }
+  await page
+    .getByPlaceholder("Nhập nội dung hoặc tên bài…")
+    .fill("thanh sô-cô-la");
+  await expect(page.locator(".question-bank-card")).toHaveCount(1);
+  await page
+    .locator(".question-bank-card")
+    .getByText("Xem đáp án và lời giải")
+    .click();
+  await expect(page.locator(".question-bank-card")).toContainText(
+    "Đáp án: C. 50",
+  );
+});
 
 test("Vietnamese narration waits for a suitable voice and stops on pause or mute", async ({
   page,

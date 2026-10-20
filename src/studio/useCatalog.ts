@@ -17,19 +17,54 @@ export function useCatalog() {
     [error, setError] = useState("");
   useEffect(() => {
     if (!configured) return;
-    void api<{
-      subjects: { id: string; name: string }[];
-      templates: { type: TemplateType }[];
-    }>("/catalog")
-      .then((data) => {
+    let active = true,
+      inFlight = false,
+      failures = 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    let controller: AbortController | undefined;
+    async function load() {
+      if (!active || inFlight) return;
+      clearTimeout(retry);
+      inFlight = true;
+      controller = new AbortController();
+      const timeout = setTimeout(() => controller?.abort(), 8000);
+      try {
+        const data = await api<{
+          subjects: { id: string; name: string }[];
+          templates: { type: TemplateType }[];
+        }>("/catalog", { signal: controller.signal });
+        if (!active) return;
         setSubjects(
           Object.fromEntries(data.subjects.map((row) => [row.id, row.name])),
         );
         setEnabled(data.templates.map((row) => row.type));
-      })
-      .catch(() =>
-        setError("Không tải được danh mục môn học và mẫu. Hãy tải lại trang."),
-      );
+        setError("");
+        failures = 0;
+      } catch {
+        if (!active) return;
+        setError(
+          "Chưa kết nối được danh mục môn học và mẫu. Đang tự kết nối lại…",
+        );
+        retry = setTimeout(
+          () => void load(),
+          Math.min(15000, 1000 * 2 ** Math.min(failures++, 4)),
+        );
+      } finally {
+        clearTimeout(timeout);
+        inFlight = false;
+      }
+    }
+    const reconnect = () => void load();
+    void load();
+    window.addEventListener("online", reconnect);
+    window.addEventListener("focus", reconnect);
+    return () => {
+      active = false;
+      clearTimeout(retry);
+      controller?.abort();
+      window.removeEventListener("online", reconnect);
+      window.removeEventListener("focus", reconnect);
+    };
   }, []);
   return { subjects, enabledTemplates, error };
 }

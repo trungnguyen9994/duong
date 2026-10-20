@@ -6,8 +6,8 @@ Làm tại `E:\project\duong` (không sửa bản sao `duong/`). Node 22+, Docke
 
 ```powershell
 npm ci
-npm run local:start
 npm run dev:all
+npm run local:autostart # Windows: cài tự chạy khi đăng nhập, chỉ cần một lần
 ```
 
 - Giao diện: http://127.0.0.1:5173/
@@ -18,7 +18,9 @@ npm run dev:all
 - Ảnh, thumbnail, file upload tạm và PPTX: `data/storage/` (ngoài public, được Git bỏ qua).
 - `.env`: tài khoản DB, secret ký URL, SMTP, cấu hình backend. `.env.local`: API URL và hộp thư local; không chứa secret.
 
-`local:start` dùng container Laradock `laradock-mariadb-1` khi có. Máy mới tạo `edugame-mariadb` với volume `edugame_mariadb`. Chỉ tạo schema trong database riêng, không thay đổi database Laradock khác. `local:env` áp dụng migrations idempotent, không reset hoặc xóa dữ liệu. Bộ SQL nằm trong `database/migrations/`.
+`dev:all` kiểm tra Docker, phục hồi runtime socket cũ khi Desktop đã dừng, chờ MariaDB và API khỏe rồi mới bật giao diện. Theo dõi kết nối mỗi 15 giây, thử phục hồi dịch vụ sau hai lần lỗi liên tiếp. `local:start` dùng container trong `.env` hoặc Laradock `laradock-mariadb-1` khi có. Máy mới tạo `edugame-mariadb` với volume `edugame_mariadb`. Chỉ bootstrap khi thiếu schema/cấu hình; giữ `.env` và dữ liệu của máy đã dùng. `local:env` áp dụng migrations idempotent. Bộ SQL nằm trong `database/migrations/`.
+
+Windows Startup chạy `DuongLearningLocal.vbs` của người dùng hiện tại; launcher nền ghi log vào `data/local-runtime/launcher.log`. Không dừng Docker đang hoạt động, không reset Docker hay xóa volume để xử lý socket. Các bản runtime cũ giữ trong `%LOCALAPPDATA%\Docker\run-stale-*` để kiểm tra. Cơ chế khóa ngăn mở hai bộ web/API/worker đồng thời; khóa của phiên Windows trước được giải phóng khi khởi chạy lại.
 
 ## Tài khoản
 

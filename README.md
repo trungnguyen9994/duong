@@ -4,13 +4,11 @@ Nền tảng tạo trò chơi dạy học đa môn bằng React, TypeScript, Mar
 
 ## Chạy local
 
-Yêu cầu Node.js 22+, Docker Desktop đang chạy. Làm tại thư mục gốc; không chạy trong bản sao `duong/`.
+Yêu cầu Node.js 22+, Docker Desktop đã cài. Làm tại thư mục gốc; không chạy trong bản sao `duong/`.
 
 ```powershell
-cd E:\project\duong
+cd C:\project\duong
 npm ci
-npm run local:start
-npm run local:env
 npm run dev:all
 ```
 
@@ -19,7 +17,17 @@ npm run dev:all
 - Database: [phpMyAdmin – supabase_db_duong](http://localhost:8081/index.php?route=/database/structure&db=supabase_db_duong)
 - Hộp thư xác minh/đặt lại mật khẩu: [127.0.0.1:8025](http://127.0.0.1:8025)
 
-MariaDB tại `127.0.0.1:3306`, database `supabase_db_duong`. `local:start` dùng MariaDB Laradock đang có hoặc tạo container riêng, khởi động Mailpit và tạo cấu trúc. Cấu hình máy chủ trong `.env`, cấu hình trình duyệt trong `.env.local`; cả hai được Git bỏ qua. Ảnh/PPTX riêng tư lưu tại `data/storage/`. Không đưa thông tin DB hoặc secret ký file vào biến `VITE_*`.
+`dev:all` tự chờ Docker → MariaDB/Mailpit → API và danh mục → worker/web. Trên Windows, khi Docker đã dừng, launcher lưu thư mục runtime socket cũ sang `run-stale-*` rồi tạo runtime sạch trước khi bật Docker. Không chạm vào runtime khi engine đang chạy. Khi mất kết nối database, launcher thử phục hồi dịch vụ và trang tự tải lại danh mục. Có thể bấm đúp `Chay-du-an.cmd` nếu không dùng terminal; launcher dùng trực tiếp Node nên không cần `npm` trong tiến trình Windows Startup.
+
+Để tự chạy nền sau khi đăng nhập Windows (chỉ cài một lần):
+
+```powershell
+npm run local:autostart
+```
+
+Mục tự chạy là `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\DuongLearningLocal.vbs`. Log tại `data/local-runtime/launcher.log`, khóa tránh chạy trùng tại `data/local-runtime/dev.lock`. Dừng bộ tiến trình nền hiện tại bằng `npm run local:stop` (giữ Docker/database); dùng Ctrl+C nếu chạy trong terminal. Muốn tắt tự chạy ở các lần đăng nhập sau, bỏ riêng mục `DuongLearningLocal.vbs` trong thư mục Startup; không xóa volume/database. Không cần mở trình duyệt tự động. Nếu Docker không thể lên trong 3 phút, xem log và thông báo trong Docker Desktop.
+
+MariaDB mặc định tại `127.0.0.1:3306`, database `supabase_db_duong`. `local:start` dùng container trong `.env` hoặc MariaDB Laradock đang có, khởi động Mailpit; chỉ tạo cấu hình/schema khi thiếu. Những lần mở lại không ghi đè `.env` hoặc chạy lại seed. Dùng `local:env` khi chủ động áp dụng migrations. Cấu hình máy chủ trong `.env`, cấu hình trình duyệt trong `.env.local`; cả hai được Git bỏ qua. Ảnh/PPTX riêng tư lưu tại `data/storage/`. Không đưa thông tin DB hoặc secret ký file vào biến `VITE_*`.
 
 ## Sử dụng
 
