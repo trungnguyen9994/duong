@@ -280,7 +280,9 @@ export function BuilderPreview({
               <img
                 src={
                   character?.url ||
-                  (spec.kind === "football"
+                  (spec.kind === "doremon_travel"
+                    ? "/art/doremon/image21.gif"
+                    : spec.kind === "football"
                     ? "/art/football/image4.png"
                     : spec.kind === "clever_frog"
                       ? "/art/frog/image20.png"

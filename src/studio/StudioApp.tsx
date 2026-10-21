@@ -106,9 +106,13 @@ function Library() {
   const currentPage = Math.min(page, pages);
   const pageTemplates = filteredTemplates.slice((currentPage - 1) * 8, currentPage * 8);
   return (
-    <div className="eg-workspace">
-      <aside className="eg-sidebar">
-        <h2>Khám phá mẫu</h2>
+    <main className="eg-main eg-library-container">
+      <h1>Mẫu trò chơi</h1>
+      {catalogError && <p role="alert">{catalogError}</p>}
+      <p>Chọn một thế giới để bắt đầu bài học.{" "}
+        {subject && catalogSubjects[subject]} {grade && `· Lớp ${grade}`}
+      </p>
+      <section className="eg-library-filters" aria-label="Bộ lọc mẫu trò chơi">
         <label>
           Môn học
           <select value={subject} onChange={(e) => setSubject(e.target.value)}>
@@ -140,20 +144,16 @@ function Library() {
             ))}
           </select>
         </label>
-      </aside>
-      <main className="eg-main">
-        <h1>Mẫu trò chơi</h1>
-        {catalogError && <p role="alert">{catalogError}</p>}
-        <p>
-          Chọn một thế giới để bắt đầu bài học.{" "}
-          {subject && catalogSubjects[subject]} {grade && `· Lớp ${grade}`}
-        </p>
+        <label>
+          Tìm mẫu
         <input
           aria-label="Tìm mẫu"
           placeholder="Tìm mẫu trò chơi…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        </label>
+      </section>
         <div className="eg-grid eg-library-grid">
           {pageTemplates.map((t) => {
               const template = templateRegistry[t];
@@ -198,8 +198,7 @@ function Library() {
           <button disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Trang sau</button>
           <span>{(currentPage - 1) * 8 + 1}–{Math.min(currentPage * 8, filteredTemplates.length)} / {filteredTemplates.length} mẫu</span>
         </nav>}
-      </main>
-    </div>
+    </main>
   );
 }
 function Dashboard({ exportsOnly = false }: { exportsOnly?: boolean }) {

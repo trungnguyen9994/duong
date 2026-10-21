@@ -680,6 +680,7 @@ app.put("/api/admin/templates/:id", async (req, res) => {
         "forest_rescue",
         "boat_rescue",
         "football",
+        "doremon_travel",
       ])
       .parse(req.params.id),
     enabled = z.boolean().parse(req.body.enabled);

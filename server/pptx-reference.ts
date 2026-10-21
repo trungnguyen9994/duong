@@ -8,6 +8,7 @@ import {
 } from "../src/domain/studio-spec";
 
 const supported = [
+  "doremon_travel",
   "picture_reveal",
   "clever_frog",
   "boat_rescue",
@@ -132,6 +133,60 @@ export async function renderReferencePptx(
   const zip = await JSZip.loadAsync(
     await readFile(new URL(`./templates/${spec.kind}.pptx`, import.meta.url)),
   );
+  if (spec.kind === "doremon_travel") {
+    async function replacePicture(slide: number, rid: string, assetId?: string, scene = false) {
+      if (!assetId) return;
+      const data = assets.get(assetId);
+      if (!data) throw Error("Thiếu ảnh đã chọn.");
+      const file = `doremon-${slide}-${rid}.png`;
+      const prepared = scene
+        ? await (await import("./pptx")).cropBackground(data, spec.media, { width: 1600, height: 1000 })
+        : await sharp(data).png().toBuffer();
+      zip.file(`ppt/media/${file}`, prepared);
+      const path = `ppt/slides/_rels/slide${slide}.xml.rels`;
+      let rels = await zip.file(path)!.async("string");
+      rels = rels.replace(/<Relationship\b[^>]*\/>/g, rel => rel.includes(`Id="${rid}"`) ? rel.replace(/Target="[^"]*"/, `Target="../media/${file}"`) : rel);
+      zip.file(path, rels);
+    }
+    let cover = await zip.file("ppt/slides/slide1.xml")!.async("string");
+    cover = replaceText(cover, "2", spec.metadata.title, "Arial");
+    cover = replaceText(cover, "3", "Mẫu tham khảo: Huyen Trang", "Arial");
+    cover = styleShape(cover, "2", spec, "heading");
+    zip.file("ppt/slides/slide1.xml", cover);
+    await replacePicture(1, "rId3", spec.media.backgroundId, true);
+    const titles = ["2", "28", "27", "28"], places = ["22", "25", "26", "26"];
+    const correctShapes = ["18", "19", "19", "18"], wrongShapes = ["19", "20", "20", "19"];
+    const defaultCorrect = [1, 0, 0, 1];
+    for (let i = 0; i < 4; i++) {
+      const q = spec.content.questions[i], path = `ppt/slides/slide${i + 2}.xml`;
+      let xml = await zip.file(path)!.async("string");
+      xml = replaceText(xml, titles[i], `${q.prompt}\nA. ${q.choices[0]}\nB. ${q.choices[1]}`, spec.appearance?.font || "Arial");
+      // The original uses grouped buttons for A and B. Swap only click triggers,
+      // preserving animation targets, motion paths, media and all sound timings.
+      if (q.correct !== defaultCorrect[i]) {
+        const a = i === 0 || i === 3 ? "8" : "9", b = "15";
+        xml = xml.replace(/<p:cond\b[^>]*evt="onClick"[\s\S]*?<\/p:cond>/g, condition => condition.replace(/spid="(\d+)"/g, (match, id: string) => id === a ? `spid="${b}"` : id === b ? `spid="${a}"` : match));
+      }
+      xml = replaceText(xml, correctShapes[i], "Chính xác!", "Arial");
+      xml = replaceText(xml, wrongShapes[i], "Chưa đúng!", "Arial");
+      xml = replaceText(xml, places[i], `${q.label || ["Cầu sông Hàn", "Cầu Rồng", "Công viên châu Á", "Cầu Tình yêu"][i]}\nĐà Nẵng, Việt Nam`, "Arial");
+      xml = styleShape(xml, titles[i], spec, "question");
+      xml = styleShape(xml, correctShapes[i], spec, "answer");
+      xml = styleShape(xml, wrongShapes[i], spec, "answer");
+      xml = styleShape(xml, places[i], spec, "heading");
+      await replacePicture(i + 2, "rId6", spec.media.backgroundId, true);
+      await replacePicture(i + 2, i === 0 ? "rId16" : "rId9", q.imageId);
+      await replacePicture(i + 2, "rId7", spec.media.characterId);
+      // Auto-fit long Vietnamese questions rather than clipping the original text box.
+      xml = xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/g, shape => shapeId(shape) === titles[i] ? shape.replace(/<a:bodyPr\s*\/>/, '<a:bodyPr><a:normAutofit/></a:bodyPr>') : shape);
+      if (spec.settings.reducedMotion)
+        xml = xml.replace(/<p:(animEffect|animMotion|animRot|animScale)\b[^>]*>[\s\S]*?<\/p:\1>/g, "");
+      zip.file(path, xml);
+    }
+    const result = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    if (result.length > 50 * 1024 * 1024) throw Error("File PowerPoint vượt 50 MB.");
+    return result;
+  }
   const qs = questionsOf(spec),
     football = spec.kind === "football",
     boat = spec.kind === "boat_rescue",

@@ -778,7 +778,7 @@ export function Builder() {
                         spec.kind === "clever_frog" ||
                         spec.kind === "forest_rescue"
                       }
-                      choiceCount={spec.kind === "boat_rescue" ? 3 : 4}
+                      choiceCount={isAdventure(spec.kind) ? adventureConfig[spec.kind].choices : 4}
                       labelName={
                         isAdventure(spec.kind)
                           ? "Tên nhân vật / thử thách"

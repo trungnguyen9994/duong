@@ -152,7 +152,7 @@ test("Vietnamese narration waits for a suitable voice and stops on pause or mute
 }) => {
   await page.addInitScript(() => {
     const state = {
-      voices: [{ name: "English", lang: "en-US", localService: true }],
+      voices: [] as { name: string; lang: string; localService: boolean }[],
       spoken: [] as { text: string; lang: string; rate: number }[],
       active: false,
       cancels: 0,
@@ -193,10 +193,9 @@ test("Vietnamese narration waits for a suitable voice and stops on pause or mute
       },
     });
   });
+  await page.route("**/audio/vi/*.mp3", route => route.fulfill({ status: 404 }));
   await page.goto("/demo/journey");
-  await expect(
-    page.getByText(/Máy chưa có giọng đọc tiếng Việt/),
-  ).toBeVisible();
+  await expect(page.getByText(/Chưa tải được giọng đọc/)).toBeVisible();
   expect(
     await page.evaluate(() => (window as any).__narration.spoken.length),
   ).toBe(0);
@@ -535,4 +534,129 @@ test("wheel visibly animates before announcing its result", async ({
     Number((e as HTMLElement).style.transform.match(/rotate\((.+)deg\)/)?.[1]),
   );
   expect((degrees + 3 * 45 + 22.5) % 360).toBe(0);
+});
+
+test("Doremon travel completes four destinations with original sounds", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.assign(window, { __travelSounds: [] as string[] });
+    HTMLMediaElement.prototype.play = function () {
+      (window as any).__travelSounds.push(this.src);
+      return Promise.resolve();
+    };
+  });
+  await page.goto("/demo/doremon_travel");
+  await page.getByRole("button", { name: "Bắt đầu chuyến đi", exact: true }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: "artifacts/doremon/web-destinations.png", fullPage: true });
+  await page.getByRole("button", { name: /Cầu sông Hàn/ }).click();
+  await page.getByRole("button", { name: "A. Hà Nội", exact: true }).click();
+  await expect(page.getByText("Chưa đúng, thử lại nhé!", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thử lại", exact: true }).click();
+  await page.getByRole("button", { name: "B. Đà Nẵng", exact: true }).click();
+  await expect(page.getByText("Chính xác!", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "artifacts/doremon/web-correct.png", fullPage: true });
+  await page.getByRole("button", { name: "Tiếp tục chuyến đi", exact: true }).click();
+  const stops = [
+    ["Cầu Rồng", "A. Con rồng"],
+    ["Công viên châu Á", "A. Tuân theo hướng dẫn an toàn"],
+    ["Cầu Tình yêu", "B. Bỏ rác đúng nơi quy định"],
+  ];
+  for (const [stop, choice] of stops) {
+    await page.getByRole("button", { name: new RegExp(stop) }).click();
+    await page.getByRole("button", { name: choice, exact: true }).click();
+    await page.getByRole("button", { name: "Tiếp tục chuyến đi", exact: true }).click();
+  }
+  await expect(page.getByRole("heading", { name: "Chúc mừng cả lớp!" })).toBeVisible();
+  const sounds = await page.evaluate(() => (window as any).__travelSounds as string[]);
+  for (const name of ["audio1.wav", "audio2.wav", "audio3.wav"])
+    expect(sounds.some(url => url.endsWith(name))).toBe(true);
+});
+
+test("Doremon travel fits a narrow screen and decodes original WAV sounds", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/demo/doremon_travel");
+  await page.getByRole("button", { name: "Bắt đầu chuyến đi", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Cầu sông Hàn/ })).toBeVisible();
+  const overflow = await page.evaluate(() => [...document.querySelectorAll("body *")].filter(el => el.getBoundingClientRect().right > innerWidth + 1).map(el => `${el.tagName}.${el.className}: ${el.getBoundingClientRect().right}`));
+  expect(overflow).toEqual([]);
+  const durations = await page.evaluate(async () => {
+    const context = new AudioContext();
+    try {
+      return await Promise.all([1, 2, 3, 4].map(async i => {
+        const bytes = await fetch(`/art/doremon/audio${i}.wav`).then(r => r.arrayBuffer());
+        return (await context.decodeAudioData(bytes)).duration;
+      }));
+    } finally { await context.close(); }
+  });
+  durations.forEach(duration => expect(duration).toBeGreaterThan(0));
+  await page.screenshot({ path: "artifacts/doremon/web-mobile.png", fullPage: true });
+});
+
+test("recorded Vietnamese MP3 files decode in the browser", async ({ page }) => {
+  await page.goto("/");
+  const durations = await page.evaluate(async () => {
+    const context = new AudioContext();
+    try {
+      const manifest = await fetch("/audio/vi/manifest.json").then(r => r.json());
+      return await Promise.all(manifest.files.map(async ({ file }: { file: string }) => {
+        const response = await fetch(`/audio/vi/${file}`);
+        if (!response.ok) throw Error(`Missing audio: ${file}`);
+        const decoded = await context.decodeAudioData(await response.arrayBuffer());
+        return decoded.duration;
+      }));
+    } finally {
+      await context.close();
+    }
+  });
+  expect(durations).toHaveLength(10);
+  durations.forEach(duration => expect(duration).toBeGreaterThan(1));
+});
+
+test("recorded Vietnamese narration plays without an installed voice and stops on mute", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = { plays: 0, pauses: 0 };
+    Object.assign(window, { __recordedAudio: state });
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        getVoices: () => [],
+        cancel: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      },
+    });
+    HTMLMediaElement.prototype.play = function () {
+      state.plays++;
+      return Promise.resolve();
+    };
+    HTMLMediaElement.prototype.pause = function () {
+      state.pauses++;
+    };
+    HTMLMediaElement.prototype.load = function () {};
+  });
+  await page.goto("/demo/journey");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__recordedAudio.plays))
+    .toBeGreaterThan(0);
+  await expect(
+    page.getByRole("button", { name: "Nghe lại lời thoại", exact: true }),
+  ).toBeEnabled();
+  const before = await page.evaluate(
+    () => (window as any).__recordedAudio.plays,
+  );
+  await page
+    .getByRole("button", { name: "Nghe lại lời thoại", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__recordedAudio.plays))
+    .toBe(before + 1);
+  await page.getByRole("button", { name: "Tắt âm", exact: true }).click();
+  expect(
+    await page.evaluate(() => (window as any).__recordedAudio.pauses),
+  ).toBeGreaterThan(0);
+  await expect(
+    page.getByRole("button", { name: "Nghe lại lời thoại", exact: true }),
+  ).toBeDisabled();
 });

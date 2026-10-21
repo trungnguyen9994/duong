@@ -1,0 +1,69 @@
+{
+  "provider": "Vbee Studio",
+  "voice": "HN - Việt Bách",
+  "speed": 1,
+  "created": "2026-10-21",
+  "pointsUsed": 357,
+  "files": [
+    {
+      "file": "intro.mp3",
+      "text": "Sẵn sàng khám phá chặng tiếp theo nhé!",
+      "bytes": 38061,
+      "sha256": "a3c6439e43d068855ca2ed6440d6ee9d1beece6d360481de6fb81c0704ee3784"
+    },
+    {
+      "file": "correct.mp3",
+      "text": "Chính xác! Con làm tốt lắm!",
+      "bytes": 36525,
+      "sha256": "c3371e706ab9e8bbb774b7e25e894209e61c414036fc1e922e6fabd0bd817cb0"
+    },
+    {
+      "file": "retry.mp3",
+      "text": "Mình cùng suy nghĩ và thử lại nhé!",
+      "bytes": 37293,
+      "sha256": "cdd19517622c7c7862bfaa533bef646113ef8af9eecbb1637020c6a9e002cf83"
+    },
+    {
+      "file": "select.mp3",
+      "text": "Hãy chọn một ô để khám phá câu hỏi nhé!",
+      "bytes": 47277,
+      "sha256": "12ded0e22901d4c3bb063561562c48933a5d8a7e4e59fb808316bb4b1f408290"
+    },
+    {
+      "file": "question.mp3",
+      "text": "Cùng đọc câu hỏi và chọn đáp án nhé!",
+      "bytes": 39213,
+      "sha256": "06740a0a04971dee0ca10c175c3a616712cc46fd69f931331e6e25c4fdbb4418"
+    },
+    {
+      "file": "answer.mp3",
+      "text": "Cùng xem đáp án và lời giải nhé!",
+      "bytes": 36909,
+      "sha256": "9b7a114fbdf6fab3d4d55ead387e37b78f4a065fb145268f93ad128906b7a625"
+    },
+    {
+      "file": "summary.mp3",
+      "text": "Chúc mừng cả lớp đã hoàn thành trò chơi!",
+      "bytes": 42285,
+      "sha256": "a8e0cff1aad5124022677d0acb6d3770e2ab7601b311e2b5b49dd6c906ebcad7"
+    },
+    {
+      "file": "turn.mp3",
+      "text": "Đến lượt quay rồi! Cùng thử vận may nhé!",
+      "bytes": 106797,
+      "sha256": "bcfd9b8f7980c4cdbe480d9ea65b33e710d0879f43e3c1cdf90f3f2fa0f2f571"
+    },
+    {
+      "file": "lose.mp3",
+      "text": "Chuyển lượt rồi! Cùng cổ vũ bạn tiếp theo nhé!",
+      "bytes": 54189,
+      "sha256": "ce0f086a62bad6e6839e636cd3c0df3fbd9ceb302801d8707064308b826a09bd"
+    },
+    {
+      "file": "letter.mp3",
+      "text": "Hãy chọn một chữ cái nhé!",
+      "bytes": 29613,
+      "sha256": "3d0527a0c57884f235843645c9e8a06168431c1324d00cf4d059f75009a1d59d"
+    }
+  ]
+}

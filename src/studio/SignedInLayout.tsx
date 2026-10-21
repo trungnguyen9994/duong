@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "./auth";
 import { SidebarIcon } from "./SidebarIcon";
 import "./signed-in-layout.css";
@@ -17,6 +17,7 @@ const links = [
 ];
 export function SignedInLayout({ children }: { children: ReactNode }) {
   const { session, profile } = useAuth();
+  const { pathname } = useLocation();
   useEffect(() => {
     const header = document.querySelector<HTMLElement>(".home-header"),
       app = header?.closest<HTMLElement>(".eg-app");
@@ -31,7 +32,7 @@ export function SignedInLayout({ children }: { children: ReactNode }) {
     observer.observe(header);
     return () => observer.disconnect();
   }, []);
-  if (!session || !profile) return <>{children}</>;
+  if (!session || !profile || pathname.replace(/\/$/, "") === "/library") return <>{children}</>;
   return (
     <div className="eg-member-shell">
       <nav

@@ -1,0 +1,175 @@
+.doremon-player {
+  position: relative;
+  isolation: isolate;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 24px;
+  min-height: calc(100dvh - 80px);
+  padding: 88px 3% 28px;
+  background: #65c4ed url("/art/doremon/image1.jpg") center/cover;
+}
+.doremon-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 3%;
+  right: 3%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  z-index: 2;
+}
+.doremon-toolbar span {
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+}
+.doremon-player > .eg-roster,
+.doremon-main {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+.doremon-player > .eg-roster {
+  align-self: start;
+}
+.doremon-main {
+  width: 100%;
+  max-width: 1100px;
+  margin: auto;
+  text-align: center;
+}
+.doremon-main h1 {
+  background: #fffffff0;
+  color: var(--game-heading, #064580);
+  border-radius: 20px;
+  padding: 12px;
+  font-size: clamp(24px, 3vw, 36px);
+}
+.doremon-main > p {
+  background: white;
+  border-radius: 12px;
+  padding: 10px;
+}
+.doremon-cover,
+.doremon-card {
+  background: var(--game-question, #fffef6);
+  color: var(--game-text, #143955);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 8px 24px #164d6b30;
+}
+.doremon-cover > img {
+  height: 150px;
+  object-fit: contain;
+}
+.doremon-cover small {
+  display: block;
+  margin-top: 20px;
+}
+.doremon-stops {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.doremon-player .doremon-stops button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #fffef6;
+  color: #144475;
+  border: 2px solid #a4d4eb;
+}
+.doremon-stops img {
+  width: 100%;
+  height: 145px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.doremon-stops strong {
+  font-size: 22px;
+}
+.doremon-destination {
+  max-width: 100%;
+  width: 360px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+.doremon-prompt {
+  font-size: clamp(22px, 2.4vw, 30px);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.doremon-answers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.doremon-player .doremon-answers button {
+  min-width: 0;
+  min-height: 64px;
+  background: var(--game-answer, #eaf8ff);
+  color: var(--game-text, #143955);
+  font-size: 22px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.doremon-result img {
+  height: 100px;
+  object-fit: contain;
+  animation: doremon-arrive 0.4s ease-out;
+}
+.doremon-result.correct h3 {
+  color: #13703d;
+}
+.doremon-result.wrong h3 {
+  color: #b72f25;
+}
+@keyframes doremon-arrive {
+  from {
+    transform: translateY(15px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.doremon-still * {
+  animation: none !important;
+  transition: none !important;
+}
+@media (max-width: 999px) {
+  .doremon-player {
+    display: flex;
+    flex-direction: column;
+    padding: 110px 14px 24px;
+  }
+  .doremon-main {
+    margin: 0;
+  }
+  .doremon-player > .eg-roster {
+    max-height: none;
+  }
+  .doremon-answers {
+    grid-template-columns: 1fr;
+  }
+  .doremon-stops img {
+    height: 110px;
+  }
+  .doremon-stops strong {
+    font-size: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .doremon-player * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

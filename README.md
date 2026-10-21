@@ -265,3 +265,12 @@ Docker/database tạm, không phải lệnh phục hồi trực tiếp productio
 
 Worker không tự chạy cleanup. Nếu lập lịch `npm run local:cleanup`, lưu ý
 tác vụ xóa file xuất quá 7 ngày; thống nhất chính sách lưu trữ và sao lưu trước.
+
+## Âm thanh tiếng Việt trên Web
+
+Bộ MP3 Vbee tại `public/audio/vi/` dùng chung cho các mẫu trò chơi, được copy
+vào `dist` khi build. Xem [danh sách lời thoại](public/audio/vi/README.md).
+Website phát file trực tiếp, không gọi API Vbee lúc chơi và không cần thiết bị
+cài giọng Việt. Nội dung động như tên, điểm, câu hỏi/gợi ý vẫn hiển thị trên
+màn hình; lời đọc là câu phản hồi chung. Nếu trình duyệt chặn tự phát, bấm
+**Nghe lại lời thoại**. Giữ đường dẫn `/audio/vi/` được phục vụ như file tĩnh.

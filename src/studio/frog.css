@@ -1,9 +1,17 @@
-.eg-frog-theater {
+.eg-theater.eg-frog-theater {
   background: #62c8c5 url("/art/frog/image1.png") center/cover;
-  min-height: 100vh;
+  height: auto;
+  min-height: calc(100dvh - var(--player-header-height, 80px));
+  max-height: none;
+  flex: 0 0 auto;
   grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
   aspect-ratio: auto;
   padding: 70px 3% 24px;
+}
+.eg-play-overlay > .eg-theater.eg-frog-theater {
+  height: auto;
+  min-height: 100dvh;
+  max-width: none;
 }
 .frog-main {
   position: relative;
@@ -13,8 +21,9 @@
   margin: auto;
   width: 100%;
   box-sizing: border-box;
-  max-height: 100%;
-  overflow-y: auto;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
 }
 .frog-main h1 {
   text-align: center;

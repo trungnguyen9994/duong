@@ -3,6 +3,7 @@ dist/
 *.local
 test-results/
 playwright-report/
+artifacts/
 main/
 duong/
 supabase/.temp/

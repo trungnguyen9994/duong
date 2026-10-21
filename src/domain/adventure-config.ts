@@ -2,9 +2,20 @@ export const adventureTypes = [
   "forest_rescue",
   "boat_rescue",
   "football",
+  "doremon_travel",
 ] as const;
 export type AdventureType = (typeof adventureTypes)[number];
 export const adventureConfig = {
+  doremon_travel: {
+    name: "Du lịch cùng Doremon",
+    max: 4,
+    oral: false,
+    choices: 2,
+    background: "/art/doremon/image1.jpg",
+    objects: ["/art/doremon/image13.gif", "/art/doremon/image17.gif", "/art/doremon/image20.jpeg", "/art/doremon/image24.jpeg"],
+    labels: ["Cầu sông Hàn", "Cầu Rồng", "Công viên châu Á", "Cầu Tình yêu"],
+    instructions: "Cùng Doremon khám phá bốn điểm đến. Chọn A hoặc B, trả lời đúng để tiếp tục chuyến đi. Trả lời sai có thể thử lại.",
+  },
   forest_rescue: {
     name: "Giải cứu rừng xanh",
     max: 4,

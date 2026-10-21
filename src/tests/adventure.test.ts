@@ -67,7 +67,7 @@ it.each(adventureTypes)(
       nodes = deckSlides(spec),
       zip = await JSZip.loadAsync(await renderPptx(spec, new Map()));
     const question = await zip
-      .file(`ppt/slides/slide${type === "football" ? 2 : 3}.xml`)!
+      .file(`ppt/slides/slide${type === "football" || type === "doremon_travel" ? 2 : 3}.xml`)!
       .async("string");
     expect(question).toContain("1 + 2 = ?");
     expect(question).toContain("<p:timing>");
@@ -93,7 +93,7 @@ it.each(adventureTypes)(
       Object.keys(zip.files).filter((p) =>
         /^ppt\/slides\/slide\d+\.xml$/.test(p),
       ),
-    ).toHaveLength(nodes.length - 1);
+    ).toHaveLength(type === "doremon_travel" ? 5 : nodes.length - 1);
     spec.settings.reducedMotion = true;
     const reduced = await JSZip.loadAsync(await renderPptx(spec, new Map()));
     const quiet = await reduced

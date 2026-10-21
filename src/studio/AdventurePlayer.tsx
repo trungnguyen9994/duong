@@ -15,6 +15,10 @@ import { PlayerRoster } from "./PlayerRoster";
 import { SceneBackground } from "./SceneBackground";
 import { gameThemeStyle } from "./game-theme";
 import "./adventure.css";
+import {
+  useVietnameseNarration,
+  NarrationFeedback,
+} from "./useVietnameseNarration";
 export function AdventurePlayer({
   spec,
   onExit,
@@ -28,6 +32,7 @@ export function AdventurePlayer({
 }) {
   const [state, setState] = useState(() => initialAdventure(spec)),
     [paused, setPaused] = useState(false),
+    [muted, setMuted] = useState(spec.settings.muted),
     [round, setRound] = useState(0);
   const assets = useAssets(initialAssets),
     seconds = useCountdown(
@@ -37,6 +42,17 @@ export function AdventurePlayer({
       paused,
     );
   usePlayRecord(spec.id, state.phase === "summary", state.scores, record);
+  const narrationText =
+    state.phase === "correct"
+      ? "Chính xác! Con làm tốt lắm!"
+      : state.phase === "wrong"
+        ? "Cùng suy nghĩ và thử lại nhé!"
+        : state.phase === "summary"
+          ? "Chúc mừng cả lớp đã hoàn thành trò chơi!"
+          : state.phase === "board"
+            ? "Hãy chọn một ô để khám phá câu hỏi nhé!"
+            : "Cùng đọc câu hỏi và chọn đáp án nhé!";
+  const narration = useVietnameseNarration(narrationText, muted, paused);
   if (!isAdventure(spec.kind) || !("questions" in spec.content)) return null;
   const config = adventureConfig[spec.kind],
     q = state.active === null ? null : spec.content.questions[state.active],
@@ -76,6 +92,15 @@ export function AdventurePlayer({
         onSelect={(team) => setState((s) => ({ ...s, team }))}
       />
       <main className="adventure-main">
+        <button aria-pressed={!muted} onClick={() => setMuted(!muted)}>
+          {muted ? "Bật âm" : "Tắt âm"}
+        </button>
+        <NarrationFeedback
+          notice={narration.notice}
+          onReplay={narration.replay}
+          disabled={paused || muted}
+          visible={!muted}
+        />
         <h1>{spec.metadata.title}</h1>
         <p className="adventure-progress">
           {kind === "football" ? "Số bàn thắng" : "Đã giải cứu"}:{" "}

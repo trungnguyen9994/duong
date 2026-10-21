@@ -4,6 +4,12 @@ import "./about-page.css";
 
 const templates = [
   {
+    type: "doremon_travel",
+    tag: "Cùng Doremon khám phá bốn điểm đến",
+    description: "Du lịch qua bốn điểm đến ở Đà Nẵng và trả lời câu hỏi với hai lựa chọn A/B. Mẫu giữ hình ảnh, hiệu ứng và âm thanh của PowerPoint tham khảo.",
+    example: "Gợi ý sử dụng: khám phá địa danh, giáo dục an toàn, ôn tập theo chủ đề.",
+  },
+  {
     type: "forest_rescue",
     tag: "Trả lời câu hỏi, giải cứu con vật",
     description: "Khám phá rừng xanh, chọn con vật và vượt qua câu hỏi để mở lồng giải cứu. Giáo viên điều hành và cùng cả lớp kiểm tra đáp án.",

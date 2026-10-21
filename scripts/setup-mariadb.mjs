@@ -43,7 +43,8 @@ rootSql(
     "\n" +
     readFileSync("database/migrations/004_clever_frog.sql", "utf8") +
     "\n" +
-    readFileSync("database/migrations/005_adventure_games.sql", "utf8"),
+    readFileSync("database/migrations/005_adventure_games.sql", "utf8") +
+    "\n" + readFileSync("database/migrations/006_doremon_travel.sql", "utf8"),
 );
 mkdirSync("backups/before-mariadb", { recursive: true });
 if (existsSync(".env") && !existsSync("backups/before-mariadb/.env"))

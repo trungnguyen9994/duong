@@ -265,6 +265,15 @@ export function frogSlides(spec: StudioSpec): Node[] {
   ];
 }
 export const pptxAdapters = Object.freeze({
+  "doremon_travel@1": (spec: StudioSpec): Node[] => {
+    const errors = playableErrors(spec);
+    if (errors.length) throw Error(errors.join(" "));
+    if (spec.kind !== "doremon_travel") throw Error("Sai mẫu trò chơi.");
+    return [
+      { id: "cover", title: spec.metadata.title, text: spec.metadata.description, buttons: [{ text: "Bắt đầu", target: "q-0" }], scene: 0 },
+      ...spec.content.questions.map((q, i) => ({ id: `q-${i}`, title: q.label || `Điểm đến ${i + 1}`, text: q.prompt, buttons: [{ text: i < 3 ? "Điểm đến tiếp theo" : "Chơi lại", target: i < 3 ? `q-${i + 1}` : "cover" }], scene: i + 1 })),
+    ];
+  },
   "forest_rescue@1": adventureSlides,
   "boat_rescue@1": adventureSlides,
   "football@1": adventureSlides,

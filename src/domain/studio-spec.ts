@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { adventureConfig, isAdventure } from "./adventure-config";
+import { travelStops } from "./doremon-travel";
 
 export const templateTypes = [
   "journey",
@@ -9,6 +10,7 @@ export const templateTypes = [
   "forest_rescue",
   "boat_rescue",
   "football",
+  "doremon_travel",
 ] as const;
 export const mcqSchema = z.object({
   label: z.string().max(40).optional(),
@@ -66,6 +68,12 @@ const common = {
   }),
 };
 export const studioSpecSchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...common,
+    kind: z.literal("doremon_travel"),
+    template: z.object({ type: z.literal("doremon_travel"), version: z.literal(1) }),
+    content: z.object({ questions: z.array(mcqSchema).max(4) }),
+  }),
   z.object({
     ...common,
     kind: z.literal("forest_rescue"),
@@ -188,9 +196,9 @@ export function createStudioGame(type: TemplateType = "journey"): StudioSpec {
           (_, i) => ({
             id: crypto.randomUUID(),
             label: config.labels[i % config.labels.length],
-            prompt: "",
-            choices: ["", "", "", ""],
-            correct: 0,
+            prompt: type === "doremon_travel" ? travelStops[i].question : "",
+            choices: type === "doremon_travel" ? [...travelStops[i].choices] : ["", "", "", ""],
+            correct: type === "doremon_travel" ? travelStops[i].correct : 0,
             hint: "",
             explanation: "",
           }),
@@ -316,6 +324,8 @@ export function playableErrors(input: unknown): string[] {
   if (s.kind === "word_wheel" && !s.content.phrase.trim())
     errors.push("Cần cụm từ bí mật.");
   const questions = questionsOf(s);
+  if (s.kind === "doremon_travel" && questions.length !== 4)
+    errors.push("Chuyến du lịch cần đủ bốn điểm đến và bốn câu hỏi.");
   if (isAdventure(s.kind)) {
     const config = adventureConfig[s.kind];
     if (!questions.length) errors.push("Cần ít nhất một câu hỏi.");
@@ -354,31 +364,38 @@ export function playableErrors(input: unknown): string[] {
 }
 
 export const templateRegistry = Object.freeze({
+  doremon_travel: Object.freeze({
+    version: 1,
+    name: "Du lịch cùng Doremon",
+    image: "/art/doremon/image1.jpg",
+    released: true,
+    pptx: "Bốn điểm đến, hai lựa chọn A/B; giữ hiệu ứng và âm thanh từ mẫu PowerPoint gốc.",
+  }),
   forest_rescue: Object.freeze({
     version: 1,
     name: adventureConfig.forest_rescue.name,
-    image: adventureConfig.forest_rescue.background,
+    image: "/art/forest-rescue-cover.png",
     released: true,
     pptx: "Chọn con vật, hiện đáp án và mở lồng giải cứu bằng animation.",
   }),
   boat_rescue: Object.freeze({
     version: 1,
     name: adventureConfig.boat_rescue.name,
-    image: "/art/boat_rescue/image4.png",
+    image: "/art/boat-rescue-cover.png",
     released: true,
     pptx: "Chọn thuyền, trả lời 3 phương án; thuyền chuyển động về bờ.",
   }),
   football: Object.freeze({
     version: 1,
     name: adventureConfig.football.name,
-    image: adventureConfig.football.background,
+    image: "/art/football-cover.png",
     released: true,
     pptx: "Chọn 4 đáp án; bóng chuyển động vào cầu môn hoặc ra ngoài.",
   }),
   clever_frog: Object.freeze({
     version: 1,
     name: "Ếch xanh mưu trí",
-    image: "/art/frog/image1.png",
+    image: "/art/clever-frog-cover.png",
     released: true,
     pptx: "Chọn ếch tự do, bấm hiện đáp án rồi quay về ao; giáo viên ghi điểm.",
   }),
@@ -392,14 +409,14 @@ export const templateRegistry = Object.freeze({
   picture_reveal: Object.freeze({
     version: 1,
     name: "Mảnh ghép bí mật",
-    image: "/art/castle.png",
+    image: "/art/picture-reveal-cover.png",
     released: true,
     pptx: "Chọn mảnh tự do, hiện đáp án và quay về bảng; giáo viên ghi điểm.",
   }),
   word_wheel: Object.freeze({
     version: 1,
     name: "Vòng quay ô chữ",
-    image: "/art/mountain.png",
+    image: "/art/word-wheel-cover.png",
     released: true,
     pptx: "Mở chữ theo kịch bản; quay và ghi điểm thủ công.",
   }),

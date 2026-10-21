@@ -38,7 +38,11 @@ export function FrogPlayer({
   const narration = useVietnameseNarration(
     state.phase === "pond"
       ? "Hãy chọn một chú ếch để khám phá câu hỏi nhé!"
-      : "",
+      : state.phase === "answer"
+        ? "Cùng xem đáp án và lời giải nhé!"
+        : state.phase === "summary"
+          ? "Chúc mừng cả lớp đã hoàn thành trò chơi!"
+          : "",
     muted,
     paused,
   );
